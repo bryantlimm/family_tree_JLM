@@ -64,10 +64,18 @@
               + Request New Member Addition
           </a>
           
-          <!-- Admin Edit Button (Hidden by default, shown after admin sign-in) -->
-          <button id="editButton" class="hidden items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition duration-150" onclick="openEditModal()">
-              Admin: Edit Tree Data
-          </button>
+          <!-- Admin Controls Group -->
+          <div id="adminControls" class="flex items-center space-x-2">
+            <!-- Admin Edit Button (Hidden by default, shown after admin sign-in) -->
+            <button id="editButton" class="hidden items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition duration-150" onclick="openEditModal()">
+                Admin: Edit Tree Data
+            </button>
+
+            <!-- Admin Sign Out Button (New) -->
+            <button id="signOutButton" class="hidden items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-gray-500 hover:bg-gray-600 transition duration-150" onclick="adminSignOut()">
+                Sign Out
+            </button>
+          </div>
 
           <!-- Admin Login Button -->
           <button id="loginButton" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150" onclick="adminSignIn()">
@@ -104,7 +112,7 @@
   <script type="module">
     // --- FIREBASE IMPORTS ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- FIREBASE CONFIGURATION ---
@@ -138,7 +146,7 @@
     let currentTreeData = null;
     let userId = null;
 
-    // --- AUTHENTICATION FUNCTIONS (Updated for flexible sign-in) ---
+    // --- AUTHENTICATION FUNCTIONS ---
 
     // Function to handle the admin login process, now prompting for email and password
     window.adminSignIn = async function() {
@@ -149,8 +157,7 @@
         if (!password) return;
 
         try {
-            // Note: This signs in any valid Firebase Auth user, but only users 
-            // whose UIDs are in ADMIN_UIDS get edit rights.
+            // Note: This signs in any valid Firebase Auth user.
             await signInWithEmailAndPassword(auth, email, password);
             console.log("Admin signed in successfully!"); 
         } catch (error) {
@@ -160,11 +167,24 @@
         }
     }
     
+    // Function to handle admin sign out (NEW)
+    window.adminSignOut = async function() {
+        try {
+            await signOut(auth);
+            console.log("Admin signed out successfully!");
+            // onAuthStateChanged listener handles UI update
+        } catch (error) {
+            console.error("Sign Out Error:", error.message);
+            alert("Sign out failed."); 
+        }
+    }
+
     // Check for existing signed-in user (only relevant for the Admin)
     onAuthStateChanged(auth, (user) => {
         userId = user ? user.uid : null;
         const authStatusElement = document.getElementById('authStatus');
         const editButton = document.getElementById('editButton');
+        const signOutButton = document.getElementById('signOutButton'); // NEW
         const loginButton = document.getElementById('loginButton');
 
         // CRITICAL CHECK: Determine if the currently signed-in user is an Admin
@@ -172,15 +192,23 @@
 
         if (isUserAdmin) {
             authStatusElement.innerHTML = `<span class="text-green-600 font-bold">ADMIN MODE (Signed In)</span>`;
+            
+            // Show Admin controls
             editButton.classList.remove('hidden');
             editButton.classList.add('flex');
-            loginButton.classList.add('hidden');
+            signOutButton.classList.remove('hidden'); // SHOW SIGN OUT
+            signOutButton.classList.add('flex');
+            loginButton.classList.add('hidden'); // HIDE LOGIN
         } else {
             // Everyone else is a viewer, whether signed in or not.
             authStatusElement.innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
+            
+            // Hide Admin controls
             editButton.classList.add('hidden');
             editButton.classList.remove('flex');
-            loginButton.classList.remove('hidden');
+            signOutButton.classList.add('hidden'); // HIDE SIGN OUT
+            signOutButton.classList.remove('flex');
+            loginButton.classList.remove('hidden'); // SHOW LOGIN
         }
     });
 
@@ -188,6 +216,7 @@
     function loadTreeData() {
         // Listen for real-time changes to the tree document
         onSnapshot(treeDocRef, (docSnap) => {
+            // UI state check: the onAuthStateChanged handles the main status, but this ensures a quick view-only update if needed
             if (auth.currentUser === null || !ADMIN_UIDS.includes(auth.currentUser.uid)) {
                  document.getElementById('authStatus').innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
             }
@@ -235,7 +264,7 @@
         }
     }
 
-    // --- DATA HANDLING (WRITE) & D3 LOGIC (Unchanged) ---
+    // --- DATA HANDLING (WRITE) & D3 LOGIC ---
     const initialJsonStructure = {
       name: "Jia Liok Ngo (Ancestor)", 
       children: [
