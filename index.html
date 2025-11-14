@@ -103,7 +103,7 @@
     import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // Global Firebase variables provided by the environment
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    // const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     const firebaseConfig = {
         apiKey: "AIzaSyAPoBkkYoYpHxq5EB36iqSCzSPA6Y4xVDw",
         authDomain: "familytreeapp-70fd0.firebaseapp.com",
@@ -113,7 +113,11 @@
         appId: "1:581868402894:web:64a96854cf7badfc54b89f",
         measurementId: "G-Z2LLBDS6RQ"
     };
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    const ADMIN_UID = "8rO5MWkS5LM58YVyFbCuHZOhsoJ3"
+    const ADMIN_EMAIL = "bryantaryadi25@gmail.com";
+    const appId = firebaseConfig.projectId;
+    const initialAuthToken = null;
+    // const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
     
     
     // --- FIREBASE SETUP ---
