@@ -75,18 +75,18 @@
           <div id="adminControls" class="flex items-center space-x-2">
             
             <!-- Password Change Button -->
-            <button id="passwordButton" class="hidden items-center px-3 py-2 text-xs font-medium rounded-md text-gray-800 bg-yellow-400 hover:bg-yellow-500 transition duration-150" onclick="openPasswordChangeModal()">
+            <button id="passwordButton" class="hidden items-center px-3 py-2 text-xs font-medium rounded-md text-gray-800 bg-yellow-400 hover:bg-yellow-500 transition duration-150" onclick="AuthManager.openPasswordChangeModal()">
                 Password
             </button>
 
             <!-- Admin Sign Out Button -->
-            <button id="signOutButton" class="hidden items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-gray-500 hover:bg-gray-600 transition duration-150" onclick="adminSignOut()">
+            <button id="signOutButton" class="hidden items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-gray-500 hover:bg-gray-600 transition duration-150" onclick="AuthManager.adminSignOut()">
                 Sign Out
             </button>
           </div>
 
           <!-- Admin Login Button -->
-          <button id="loginButton" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150" onclick="openLoginModal()">
+          <button id="loginButton" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150" onclick="AuthManager.openLoginModal()">
               Admin Login
           </button>
           
@@ -117,8 +117,8 @@
       <div id="loginError" class="text-red-500 text-sm mt-4 hidden"></div>
 
       <div class="flex justify-end space-x-3 mt-6">
-        <button onclick="closeLoginModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
-        <button onclick="handleAdminLogin()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Login</button>
+        <button onclick="AuthManager.closeLoginModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+        <button onclick="AuthManager.handleAdminLogin()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Login</button>
       </div>
     </div>
   </div>
@@ -148,8 +148,8 @@
       <div id="passwordChangeSuccess" class="text-green-600 text-sm mt-4 hidden"></div>
 
       <div class="flex justify-end space-x-3 mt-6">
-        <button onclick="closePasswordChangeModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
-        <button onclick="changePassword()" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">Update Password</button>
+        <button onclick="AuthManager.closePasswordChangeModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+        <button onclick="AuthManager.changePassword()" class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">Update Password</button>
       </div>
     </div>
   </div>
@@ -166,7 +166,7 @@
         <div>
           <label for="newName" class="block text-sm font-medium text-gray-700">Change Name</label>
           <input type="text" id="newName" placeholder="New Name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-          <button onclick="handleNodeAction('rename')" class="mt-2 w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">Rename Member</button>
+          <button onclick="TreeData.handleNodeAction('rename')" class="mt-2 w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">Rename Member</button>
         </div>
         
         <hr class="border-gray-200">
@@ -175,7 +175,7 @@
         <div>
           <label for="childName" class="block text-sm font-medium text-gray-700">Add New Child</label>
           <input type="text" id="childName" placeholder="New Child's Name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-          <button onclick="handleNodeAction('addChild')" class="mt-2 w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition">Add Child</button>
+          <button onclick="TreeData.handleNodeAction('addChild')" class="mt-2 w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition">Add Child</button>
         </div>
 
         <hr class="border-gray-200">
@@ -183,7 +183,7 @@
         <!-- 3. Delete Section -->
         <div id="deleteSection">
           <p class="text-red-500 text-sm font-semibold mb-2">Danger Zone: Remove Member</p>
-          <button onclick="handleNodeAction('delete')" class="w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition">Delete Member (and all descendants)</button>
+          <button onclick="TreeData.handleNodeAction('delete')" class="w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition">Delete Member (and all descendants)</button>
         </div>
 
       </div>
@@ -192,7 +192,7 @@
       <div id="nodeEditSuccess" class="text-green-600 text-sm mt-4 hidden"></div>
 
       <div class="flex justify-end mt-6">
-        <button onclick="closeNodeEditModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Done</button>
+        <button onclick="TreeData.closeNodeEditModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Done</button>
       </div>
     </div>
   </div>
@@ -202,403 +202,34 @@
   <script type="module">
     // --- FIREBASE IMPORTS ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- FIREBASE CONFIGURATION ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyAPoBkkYoYpHxq5EB36iqSCzSPA6Y4xVDw",
-        authDomain: "familytreeapp-70fd0.firebaseapp.com",
-        projectId: "familytreeapp-70fd0",
-        storageBucket: "familytreeapp-70fd0.firebasestorage.app",
-        messagingSenderId: "581868402894",
-        appId: "1:581868402894:web:64a96854cf7badfc54b89f",
-        measurementId: "G-Z2LLBDS6RQ"
-    };
+    // --- CONFIGURATION & GLOBAL STATE ---
     
-    // --- ADMIN LIST: Add UIDs of all users who should have edit permissions here ---
+    // Use the global variables for configuration (MANDATORY)
+    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+    const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId || 'default-app-id';
+
+    // UIDs of all users who should have edit permissions
     const ADMIN_UIDS = [
         "8rO5MWkS5LM58YVyFbCuHZOhsoJ3", 
         "n0qGW5dZOROudfx5kS4OLXl8dvv2"
     ];
 
-    const appId = firebaseConfig.projectId;
-    
-    // --- FIREBASE SETUP ---
     setLogLevel('debug'); 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Document reference 
+    // Document reference (uses the global appId)
     const treeDocRef = doc(db, `artifacts/${appId}/public/data/familyTree/current`);
     
     let currentTreeData = null;
     let userId = null;
     let isAdminMode = false;
+    let activeNodePath = []; // Stores the path (array of names) of the currently selected node for editing
 
-    // --- UTILITY FUNCTIONS FOR TREE MANIPULATION ---
-    
-    // Recursive function to find the node and its parent, using an array of names as the path
-    function findNodeAndParent(node, path, index = 0, parent = null) {
-        if (!node || index >= path.length) return { node: null, parent: null };
-        
-        if (node.name === path[index]) {
-            if (index === path.length - 1) {
-                // Found the target node
-                return { node, parent };
-            }
-            
-            // Continue search in children
-            if (node.children) {
-                for (const child of node.children) {
-                    const result = findNodeAndParent(child, path, index + 1, node);
-                    if (result.node) {
-                        return result;
-                    }
-                }
-            }
-        }
-        return { node: null, parent: null };
-    }
-
-    // Function to create a unique path (array of names from root to node) for a D3 node
-    function getPath(d) {
-        let path = [];
-        let current = d;
-        while (current) {
-            path.unshift(current.data.name);
-            current = current.parent;
-        }
-        return path;
-    }
-
-    // --- MODAL & ACTION HANDLERS ---
-
-    // Global variable to store the path of the node currently being edited
-    let activeNodePath = [];
-
-    window.openNodeEditModal = function(d) {
-        activeNodePath = getPath(d);
-        const memberName = d.data.name;
-        
-        document.getElementById('currentMemberName').textContent = memberName;
-        document.getElementById('newName').value = memberName;
-        document.getElementById('childName').value = '';
-        document.getElementById('nodeEditError').classList.add('hidden');
-        document.getElementById('nodeEditSuccess').classList.add('hidden');
-        
-        // Hide delete option for the root node (first element of the path array)
-        if (activeNodePath.length === 1) {
-             document.getElementById('deleteSection').classList.add('hidden');
-        } else {
-             document.getElementById('deleteSection').classList.remove('hidden');
-        }
-
-        document.getElementById('nodeEditModal').classList.remove('hidden');
-    }
-
-    window.closeNodeEditModal = function() {
-        document.getElementById('nodeEditModal').classList.add('hidden');
-    }
-
-    window.handleNodeAction = async function(action) {
-        const errorElement = document.getElementById('nodeEditError');
-        const successElement = document.getElementById('nodeEditSuccess');
-        errorElement.classList.add('hidden');
-        successElement.classList.add('hidden');
-        
-        // Use a mutable copy of the current data
-        let newTreeData = JSON.parse(JSON.stringify(currentTreeData)); 
-
-        const { node: targetNode, parent: targetParent } = findNodeAndParent(newTreeData, activeNodePath);
-
-        if (!targetNode) {
-            errorElement.textContent = "Error: Could not find the selected member in the tree data.";
-            errorElement.classList.remove('hidden');
-            return;
-        }
-        
-        let shouldSave = false;
-
-        switch (action) {
-            case 'rename':
-                const newName = document.getElementById('newName').value.trim();
-                if (!newName) {
-                    errorElement.textContent = "Name cannot be empty.";
-                    errorElement.classList.remove('hidden');
-                    return;
-                }
-                targetNode.name = newName;
-                shouldSave = true;
-                successElement.textContent = "Member successfully renamed to " + newName + "!";
-                // Update the path reference to the new name for future actions
-                activeNodePath[activeNodePath.length - 1] = newName; 
-                document.getElementById('currentMemberName').textContent = newName;
-                document.getElementById('newName').value = newName;
-                break;
-
-            case 'addChild':
-                const childName = document.getElementById('childName').value.trim();
-                if (!childName) {
-                    errorElement.textContent = "Child's name cannot be empty.";
-                    errorElement.classList.remove('hidden');
-                    return;
-                }
-                if (!targetNode.children) {
-                    targetNode.children = [];
-                }
-                targetNode.children.push({ name: childName });
-                shouldSave = true;
-                successElement.textContent = childName + " successfully added as a child!";
-                document.getElementById('childName').value = '';
-                break;
-                
-            case 'delete':
-                if (activeNodePath.length === 1 || !targetParent) {
-                    errorElement.textContent = "Cannot delete the root node.";
-                    errorElement.classList.remove('hidden');
-                    return;
-                }
-                
-                // Remove the node from the parent's children array
-                targetParent.children = targetParent.children.filter(child => child.name !== targetNode.name);
-                
-                // If parent has no more children, remove the children array entirely
-                if (targetParent.children.length === 0) {
-                    delete targetParent.children;
-                }
-                
-                shouldSave = true;
-                successElement.textContent = targetNode.name + " and their descendants have been removed.";
-                break;
-        }
-
-        if (shouldSave) {
-            try {
-                const dataToSave = { treeJson: JSON.stringify(newTreeData) };
-                await setDoc(treeDocRef, dataToSave, { merge: false });
-                currentTreeData = newTreeData; // Update the live variable
-                // The onSnapshot listener will redraw the tree.
-                console.log("Tree data successfully updated and saved to Firestore.");
-            } catch (e) {
-                errorElement.textContent = "Error saving data to database.";
-                errorElement.classList.remove('hidden');
-                console.error("Save Error:", e);
-            }
-        }
-
-        successElement.classList.remove('hidden');
-    }
-
-
-    // --- AUTH & LOGIN FUNCTIONS ---
-
-    window.openLoginModal = function() {
-        document.getElementById('loginModal').classList.remove('hidden');
-        document.getElementById('loginError').classList.add('hidden');
-        document.getElementById('adminEmail').value = '';
-        document.getElementById('adminPassword').value = '';
-    }
-
-    window.closeLoginModal = function() {
-        document.getElementById('loginModal').classList.add('hidden');
-    }
-
-    window.handleAdminLogin = async function() {
-        const emailInput = document.getElementById('adminEmail');
-        const passwordInput = document.getElementById('adminPassword');
-        const loginError = document.getElementById('loginError');
-
-        const email = emailInput.value.trim();
-        const password = passwordInput.value.trim();
-
-        loginError.classList.add('hidden');
-        
-        if (!email || !password) {
-            loginError.textContent = "Please enter both email and password.";
-            loginError.classList.remove('hidden');
-            return;
-        }
-
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-            console.log("Admin signed in successfully!"); 
-            closeLoginModal(); 
-        } catch (error) {
-            console.error("Admin Sign In Error:", error.message);
-            loginError.textContent = "Login failed. Check your email and password.";
-            loginError.classList.remove('hidden');
-        }
-    }
-    
-    window.adminSignOut = async function() {
-        try {
-            await signOut(auth);
-            console.log("Admin signed out successfully!");
-        } catch (error) {
-            console.error("Sign Out Error:", error.message);
-        }
-    }
-
-    // Password Change Functions
-    window.openPasswordChangeModal = function() {
-        document.getElementById('passwordChangeModal').classList.remove('hidden');
-        document.getElementById('passwordChangeError').classList.add('hidden');
-        document.getElementById('passwordChangeSuccess').classList.add('hidden');
-        document.getElementById('currentPassword').value = '';
-        document.getElementById('newPassword').value = '';
-        document.getElementById('confirmNewPassword').value = '';
-    }
-
-    window.closePasswordChangeModal = function() {
-        document.getElementById('passwordChangeModal').classList.add('hidden');
-    }
-
-    window.changePassword = async function() {
-        const user = auth.currentUser;
-        if (!user || !user.email) {
-            document.getElementById('passwordChangeError').textContent = "Not signed in or user data missing.";
-            document.getElementById('passwordChangeError').classList.remove('hidden');
-            return;
-        }
-
-        const currentPassword = document.getElementById('currentPassword').value;
-        const newPassword = document.getElementById('newPassword').value;
-        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-        const errorElement = document.getElementById('passwordChangeError');
-        const successElement = document.getElementById('passwordChangeSuccess');
-
-        errorElement.classList.add('hidden');
-        successElement.classList.add('hidden');
-
-        if (newPassword.length < 6) {
-            errorElement.textContent = "New password must be at least 6 characters long.";
-            errorElement.classList.remove('hidden');
-            return;
-        }
-
-        if (newPassword !== confirmNewPassword) {
-            errorElement.textContent = "New passwords do not match.";
-            errorElement.classList.remove('hidden');
-            return;
-        }
-
-        try {
-            const credential = EmailAuthProvider.credential(user.email, currentPassword);
-            await reauthenticateWithCredential(user, credential);
-            await updatePassword(user, newPassword);
-
-            successElement.textContent = "Password successfully updated!";
-            successElement.classList.remove('hidden');
-            document.getElementById('currentPassword').value = ''; 
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmNewPassword').value = '';
-
-            setTimeout(closePasswordChangeModal, 2000); 
-            
-        } catch (error) {
-            console.error("Password Change Error:", error);
-            
-            let message = "An unknown error occurred.";
-            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                message = "Current password is incorrect.";
-            } else if (error.code === 'auth/requires-recent-login') {
-                message = "Please sign out and sign back in before changing your password.";
-            } else if (error.code === 'auth/weak-password') {
-                message = "The new password is too weak. Please choose a stronger one.";
-            } else {
-                message = error.message;
-            }
-
-            errorElement.textContent = message;
-            errorElement.classList.remove('hidden');
-        }
-    }
-
-
-    // Check for existing signed-in user
-    onAuthStateChanged(auth, (user) => {
-        userId = user ? user.uid : null;
-        const authStatusElement = document.getElementById('authStatus');
-        const signOutButton = document.getElementById('signOutButton');
-        const passwordButton = document.getElementById('passwordButton'); 
-        const loginButton = document.getElementById('loginButton');
-
-        const isUserAdmin = userId && ADMIN_UIDS.includes(userId);
-        isAdminMode = isUserAdmin;
-
-        // Re-draw the tree to apply the admin styling and click handlers
-        if(currentTreeData) {
-            drawTree(currentTreeData);
-        }
-
-        if (isAdminMode) {
-            authStatusElement.innerHTML = `<span class="text-green-600 font-bold">ADMIN MODE (Click a member to edit)</span>`;
-            
-            signOutButton.classList.remove('hidden'); 
-            signOutButton.classList.add('flex');
-            passwordButton.classList.remove('hidden'); 
-            passwordButton.classList.add('flex');
-            loginButton.classList.add('hidden'); 
-        } else {
-            authStatusElement.innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
-            
-            signOutButton.classList.add('hidden'); 
-            signOutButton.classList.remove('flex');
-            passwordButton.classList.add('hidden'); 
-            passwordButton.classList.remove('flex');
-            loginButton.classList.remove('hidden'); 
-        }
-    });
-
-    // --- DATA HANDLING (READ) ---
-    function loadTreeData() {
-        onSnapshot(treeDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data && data.treeJson) {
-                    try {
-                        const treeObject = JSON.parse(data.treeJson);
-                        currentTreeData = treeObject;
-                        drawTree(currentTreeData);
-                        console.log("Tree data loaded from Firestore.");
-                    } catch (e) {
-                        console.error("Error parsing JSON data from Firestore:", e);
-                    }
-                } else {
-                    currentTreeData = { name: "Tree Document Empty" };
-                    drawTree(currentTreeData);
-                }
-            } else {
-                currentTreeData = JSON.parse(JSON.stringify(initialJsonStructure)); // Initialize with default structure
-                drawTree(currentTreeData);
-                console.log("Database not initialized. Using default structure.");
-            }
-        }, (error) => {
-            console.error("Firestore Error:", error);
-            const authStatusElement = document.getElementById('authStatus');
-            
-            if (error.code === 'permission-denied') {
-                authStatusElement.innerHTML = `<p class="text-xs text-red-500 font-bold mt-1">Error: Permission Denied. Please ensure the Firestore security rules allow unauthenticated public reads.</p>`;
-                currentTreeData = { name: "Error: Permission Denied" };
-                drawTree(currentTreeData);
-            }
-        });
-        
-        window.removeEventListener('resize', resizeHandler);
-        window.addEventListener('resize', resizeHandler);
-    }
-
-    loadTreeData();
-
-    function resizeHandler() {
-        if (currentTreeData) {
-            drawTree(currentTreeData);
-        }
-    }
-
-    // --- D3 LOGIC ---
     const initialJsonStructure = {
       name: "Jia Liok Ngo (Ancestor)", 
       children: [
@@ -610,123 +241,488 @@
         { name: "Tresnawati", children: [{ name: "Vidya", children: [{ name: "Niko" }, { name: "Andre" }, { name: "Madeline" }] }, { name: "Viko" }, { name: "Theo", children: [{ name: "Gerald" }, { name: "Kevin" }, { name: "Adelle" }] }, { name: "Siska" }, { name: "Keke Maria", children: [{ name: "Aldrich" }, { name: "Bryant (that’s me)" }, { name: "Christy Omega Aryadi" }] }] }
       ]
     };
+    
+    // --- AUTHENTICATION MANAGER (AuthManager) ---
+    const AuthManager = {
+        init: function() {
+            // Sign in anonymously first to ensure the Firebase SDK is ready for Firestore access
+            // This is a common practice to handle auth state before attempting reads, even public ones.
+            if (typeof __initial_auth_token !== 'undefined') { 
+                signInWithCustomToken(auth, __initial_auth_token); 
+            } else { 
+                signInAnonymously(auth); 
+            }
+            onAuthStateChanged(auth, this.handleAuthStateChange.bind(this));
+        },
 
-    // Constants for dynamic node sizing and layout
-    const LINE_HEIGHT = 14; 
-    const X_PADDING = 12; // Horizontal padding inside the box
-    const Y_PADDING = 12; // Vertical padding inside the box
-    const MIN_NODE_WIDTH = 100; // Minimum width for the name box
-
-    function drawTree(data) {
-        if (!data || !data.name) return; 
-
-        const container = document.getElementById('tree-container');
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-
-        const svg = d3.select("#tree")
-            .attr("width", width)
-            .attr("height", height);
-
-        svg.selectAll('*').remove();
-
-        const g = svg.append("g")
-            .attr("transform", "translate(40,40)"); 
-
-        const zoom = d3.zoom()
-            .scaleExtent([0.1, 4]) 
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
-            });
-
-        svg.call(zoom);
-
-        // Setting fixed separation for the tree layout
-        // Vertical separation (first argument) needs to be generous for multi-line text boxes
-        const verticalSeparation = 70; 
-        const horizontalSeparation = 160;
-
-        const treeLayout = d3.tree()
-            .nodeSize([verticalSeparation, horizontalSeparation]); 
+        handleAuthStateChange: function(user) {
+            userId = user ? user.uid : null;
             
-        const root = d3.hierarchy(data);
-        treeLayout(root);
+            // Check if the user is a logged-in admin (excluding anonymous users)
+            const isUserAdmin = user && !user.isAnonymous && ADMIN_UIDS.includes(userId);
+            isAdminMode = isUserAdmin;
 
-        // Draw Links
-        g.selectAll(".link")
-            .data(root.links()) 
-            .enter().append("path")
-            .attr("class", "link")
-            .attr("d", d3.linkHorizontal()
-                .x(d => d.y) 
-                .y(d => d.x)); 
+            const authStatusElement = document.getElementById('authStatus');
+            const signOutButton = document.getElementById('signOutButton');
+            const passwordButton = document.getElementById('passwordButton'); 
+            const loginButton = document.getElementById('loginButton');
 
-        // Draw Nodes
-        const node = g.selectAll(".node")
-            .data(root.descendants()) 
-            .enter().append("g")
-            .attr("class", d => "node" + (d.depth === 0 ? " node--root" : "") + (isAdminMode ? " node--admin" : ""))
-            .attr("transform", d => `translate(${d.y},${d.x})`); 
+            // Update UI based on admin status
+            if (isAdminMode) {
+                authStatusElement.innerHTML = `<span class="text-green-600 font-bold">ADMIN MODE (Click a member to edit)</span>`;
+                signOutButton.classList.remove('hidden'); signOutButton.classList.add('flex');
+                passwordButton.classList.remove('hidden'); passwordButton.classList.add('flex');
+                loginButton.classList.add('hidden'); 
+            } else {
+                authStatusElement.innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
+                signOutButton.classList.add('hidden'); signOutButton.classList.remove('flex');
+                passwordButton.classList.add('hidden'); passwordButton.classList.remove('flex');
+                loginButton.classList.remove('hidden'); 
+            }
+            
+            // Re-draw the tree to apply the admin styling and click handlers
+            if(currentTreeData) {
+                TreeRenderer.drawTree(currentTreeData, isAdminMode);
+            }
+        },
 
+        openLoginModal: function() {
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('adminEmail').value = '';
+            document.getElementById('adminPassword').value = '';
+        },
+
+        closeLoginModal: function() {
+            document.getElementById('loginModal').classList.add('hidden');
+        },
+
+        handleAdminLogin: async function() {
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value.trim();
+            const loginError = document.getElementById('loginError');
+
+            loginError.classList.add('hidden');
+            if (!email || !password) {
+                loginError.textContent = "Please enter both email and password.";
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // Sign out any current user (e.g., anonymous user) before signing in with credentials
+                if (auth.currentUser) {
+                    await signOut(auth);
+                }
+                await signInWithEmailAndPassword(auth, email, password);
+                console.log("Admin signed in successfully!"); 
+                this.closeLoginModal(); 
+            } catch (error) {
+                console.error("Admin Sign In Error:", error.message);
+                loginError.textContent = "Login failed. Check your email and password.";
+                loginError.classList.remove('hidden');
+            }
+        },
         
-        // --- TEXT WRAPPING AND DIMENSION CALCULATION ---
-        
-        // 1. Append the text element first
-        node.append("text")
-            .attr("class", "node-text")
-            .text(d => d.data.name)
-            .attr("text-anchor", "middle")
-            .each(function(d) {
-                const textElement = d3.select(this);
-                // Split name by space to create individual lines
-                const words = d.data.name.split(/\s+/).filter(w => w.length > 0);
-                const numLines = words.length;
+        adminSignOut: async function() {
+            try {
+                await signOut(auth);
+                // After signing out, immediately sign in anonymously to maintain a session for public reads
+                await signInAnonymously(auth);
+                console.log("Admin signed out successfully, reverting to anonymous user.");
+            } catch (error) {
+                console.error("Sign Out Error:", error.message);
+            }
+        },
 
-                // Calculate the initial vertical offset to center the block of text within the node
-                const initialDyOffset = -((numLines - 1) * LINE_HEIGHT / 2);
+        // Password Change Functions
+        openPasswordChangeModal: function() {
+            document.getElementById('passwordChangeModal').classList.remove('hidden');
+            document.getElementById('passwordChangeError').classList.add('hidden');
+            document.getElementById('passwordChangeSuccess').classList.add('hidden');
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+        },
 
-                textElement.text(null); // Clear the initial text
+        closePasswordChangeModal: function() {
+            document.getElementById('passwordChangeModal').classList.add('hidden');
+        },
 
-                words.forEach((word, i) => {
-                    textElement.append("tspan")
-                        .attr("x", 0)
-                        // The first tspan uses the calculated initial offset. Subsequent tspans use LINE_HEIGHT
-                        .attr("dy", i === 0 ? `${initialDyOffset}px` : `${LINE_HEIGHT}px`)
-                        .text(word);
-                });
+        changePassword: async function() {
+            const user = auth.currentUser;
+            if (!user || user.isAnonymous || !user.email) {
+                document.getElementById('passwordChangeError').textContent = "You must be signed in as a non-anonymous user to change the password.";
+                document.getElementById('passwordChangeError').classList.remove('hidden');
+                return;
+            }
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            const errorElement = document.getElementById('passwordChangeError');
+            const successElement = document.getElementById('passwordChangeSuccess');
+
+            errorElement.classList.add('hidden');
+            successElement.classList.add('hidden');
+
+            if (newPassword.length < 6) {
+                errorElement.textContent = "New password must be at least 6 characters long.";
+                errorElement.classList.remove('hidden');
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                errorElement.textContent = "New passwords do not match.";
+                errorElement.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const credential = EmailAuthProvider.credential(user.email, currentPassword);
+                await reauthenticateWithCredential(user, credential);
+                await updatePassword(user, newPassword);
+
+                successElement.textContent = "Password successfully updated!";
+                successElement.classList.remove('hidden');
+                document.getElementById('currentPassword').value = ''; 
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+
+                setTimeout(this.closePasswordChangeModal, 2000); 
                 
-                // Calculate required dimensions
-                const requiredHeight = numLines * LINE_HEIGHT + Y_PADDING;
+            } catch (error) {
+                console.error("Password Change Error:", error);
                 
-                // For simplicity and alignment, we keep a minimum fixed width, 
-                // but this could be dynamically calculated by measuring the longest word
-                const requiredWidth = MIN_NODE_WIDTH; 
+                let message = "An unknown error occurred.";
+                if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    message = "Current password is incorrect.";
+                } else if (error.code === 'auth/requires-recent-login') {
+                    message = "Please sign out and sign back in before changing your password.";
+                } else if (error.code === 'auth/weak-password') {
+                    message = "The new password is too weak. Please choose a stronger one.";
+                } else {
+                    message = error.message;
+                }
 
-                // Store dimensions on the node object for the rectangle
-                d.nodeDimensions = { width: requiredWidth, height: requiredHeight };
-            });
-
-        // 2. Insert the rectangle based on the calculated dimensions
-        node.insert("rect", ":first-child") // Insert rect before text
-            .attr("width", d => d.nodeDimensions.width)
-            .attr("height", d => d.nodeDimensions.height)
-            .attr("x", d => -(d.nodeDimensions.width / 2))
-            .attr("y", d => -(d.nodeDimensions.height / 2));
-
-        // Attach click handler ONLY if in Admin Mode
-        if (isAdminMode) {
-            node.on('click', (event, d) => {
-                event.stopPropagation(); 
-                openNodeEditModal(d);
-            });
+                errorElement.textContent = message;
+                errorElement.classList.remove('hidden');
+            }
         }
+    };
+    
+    // --- DATA MANAGER (TreeData) ---
+    const TreeData = {
+        // Recursive function to find the node and its parent, using an array of names as the path
+        findNodeAndParent: function(node, path, index = 0, parent = null) {
+            if (!node || index >= path.length) return { node: null, parent: null };
+            
+            if (node.name === path[index]) {
+                if (index === path.length - 1) {
+                    return { node, parent };
+                }
+                
+                if (node.children) {
+                    for (const child of node.children) {
+                        const result = this.findNodeAndParent(child, path, index + 1, node);
+                        if (result.node) {
+                            return result;
+                        }
+                    }
+                }
+            }
+            return { node: null, parent: null };
+        },
+        
+        // Function to create a unique path (array of names from root to node) for a D3 node
+        getPath: function(d) {
+            let path = [];
+            let current = d;
+            while (current) {
+                path.unshift(current.data.name);
+                current = current.parent;
+            }
+            return path;
+        },
 
-        const initialScale = 0.7;
-        svg.call(zoom.transform, d3.zoomIdentity
-            .translate(width / 4, height / 2) 
-            .scale(initialScale)
-        );
-    }
+        init: function() {
+            // Setup Firestore listener
+            onSnapshot(treeDocRef, this.handleDataSnapshot.bind(this), this.handleDataError.bind(this));
+        },
+
+        handleDataSnapshot: function(docSnap) {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data && data.treeJson) {
+                    try {
+                        const treeObject = JSON.parse(data.treeJson);
+                        currentTreeData = treeObject;
+                        TreeRenderer.drawTree(currentTreeData, isAdminMode);
+                        console.log("Tree data loaded from Firestore.");
+                    } catch (e) {
+                        console.error("Error parsing JSON data from Firestore:", e);
+                    }
+                } else {
+                    currentTreeData = { name: "Tree Document Empty" };
+                    TreeRenderer.drawTree(currentTreeData, isAdminMode);
+                }
+            } else {
+                // Initialize with default structure if document doesn't exist
+                currentTreeData = JSON.parse(JSON.stringify(initialJsonStructure)); 
+                TreeRenderer.drawTree(currentTreeData, isAdminMode);
+                console.log("Database not initialized. Using default structure.");
+                // Attempt to save the initial structure only if we are in admin mode or if the initial auth token is present
+                // NOTE: This initial save might fail if the user is not authenticated/rules restrict write
+                if (isAdminMode || typeof __initial_auth_token !== 'undefined') {
+                    TreeData.saveTreeData(currentTreeData, "Initialized default structure.");
+                }
+            }
+        },
+
+        handleDataError: function(error) {
+            console.error("Firestore Error:", error);
+            const authStatusElement = document.getElementById('authStatus');
+            
+            if (error.code === 'permission-denied') {
+                authStatusElement.innerHTML = `<p class="text-xs text-red-500 font-bold mt-1">Error: Permission Denied. Please ensure the Firestore security rules allow public reads.</p>`;
+                currentTreeData = { name: "Error: Permission Denied" };
+                TreeRenderer.drawTree(currentTreeData, isAdminMode);
+            }
+        },
+
+        saveTreeData: async function(data, successMessage) {
+             try {
+                const dataToSave = { treeJson: JSON.stringify(data) };
+                await setDoc(treeDocRef, dataToSave, { merge: false });
+                console.log("Tree data successfully updated and saved to Firestore. Message: " + successMessage);
+                return true;
+            } catch (e) {
+                document.getElementById('nodeEditError').textContent = "Error saving data to database. Check if you are logged in and if security rules allow writing.";
+                document.getElementById('nodeEditError').classList.remove('hidden');
+                console.error("Save Error:", e);
+                return false;
+            }
+        },
+
+        openNodeEditModal: function(d) {
+            activeNodePath = this.getPath(d);
+            const memberName = d.data.name;
+            
+            document.getElementById('currentMemberName').textContent = memberName;
+            document.getElementById('newName').value = memberName;
+            document.getElementById('childName').value = '';
+            document.getElementById('nodeEditError').classList.add('hidden');
+            document.getElementById('nodeEditSuccess').classList.add('hidden');
+            
+            // Hide delete option for the root node
+            if (activeNodePath.length === 1) {
+                 document.getElementById('deleteSection').classList.add('hidden');
+            } else {
+                 document.getElementById('deleteSection').classList.remove('hidden');
+            }
+
+            document.getElementById('nodeEditModal').classList.remove('hidden');
+        },
+
+        closeNodeEditModal: function() {
+            document.getElementById('nodeEditModal').classList.add('hidden');
+        },
+
+        handleNodeAction: async function(action) {
+            const errorElement = document.getElementById('nodeEditError');
+            const successElement = document.getElementById('nodeEditSuccess');
+            errorElement.classList.add('hidden');
+            successElement.classList.add('hidden');
+            
+            let newTreeData = JSON.parse(JSON.stringify(currentTreeData)); 
+            const { node: targetNode, parent: targetParent } = this.findNodeAndParent(newTreeData, activeNodePath);
+
+            if (!targetNode) {
+                errorElement.textContent = "Error: Could not find the selected member in the tree data.";
+                errorElement.classList.remove('hidden');
+                return;
+            }
+            
+            let saveMessage = "";
+
+            switch (action) {
+                case 'rename':
+                    const newName = document.getElementById('newName').value.trim();
+                    if (!newName) {
+                        errorElement.textContent = "Name cannot be empty.";
+                        errorElement.classList.remove('hidden');
+                        return;
+                    }
+                    targetNode.name = newName;
+                    saveMessage = "Member successfully renamed to " + newName + "!";
+                    activeNodePath[activeNodePath.length - 1] = newName; 
+                    document.getElementById('currentMemberName').textContent = newName;
+                    document.getElementById('newName').value = newName;
+                    break;
+
+                case 'addChild':
+                    const childName = document.getElementById('childName').value.trim();
+                    if (!childName) {
+                        errorElement.textContent = "Child's name cannot be empty.";
+                        errorElement.classList.remove('hidden');
+                        return;
+                    }
+                    if (!targetNode.children) {
+                        targetNode.children = [];
+                    }
+                    targetNode.children.push({ name: childName });
+                    saveMessage = childName + " successfully added as a child!";
+                    document.getElementById('childName').value = '';
+                    break;
+                    
+                case 'delete':
+                    if (activeNodePath.length === 1 || !targetParent) {
+                        errorElement.textContent = "Cannot delete the root node.";
+                        errorElement.classList.remove('hidden');
+                        return;
+                    }
+                    
+                    targetParent.children = targetParent.children.filter(child => child.name !== targetNode.name);
+                    
+                    if (targetParent.children.length === 0) {
+                        delete targetParent.children;
+                    }
+                    
+                    saveMessage = targetNode.name + " and their descendants have been removed.";
+                    break;
+            }
+
+            if (saveMessage) {
+                const saveSuccessful = await this.saveTreeData(newTreeData, saveMessage);
+                if (saveSuccessful) {
+                    successElement.textContent = saveMessage;
+                    successElement.classList.remove('hidden');
+                }
+            }
+        }
+    };
+
+    // --- D3 RENDERER (TreeRenderer) ---
+    const TreeRenderer = {
+        LINE_HEIGHT: 14, 
+        X_PADDING: 12, 
+        Y_PADDING: 12, 
+        MIN_NODE_WIDTH: 100,
+        
+        resizeHandler: function() {
+            if (currentTreeData) {
+                this.drawTree(currentTreeData, isAdminMode);
+            }
+        },
+
+        drawTree: function(data, isAdmin) {
+            if (!data || !data.name) return; 
+
+            const container = document.getElementById('tree-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const svg = d3.select("#tree")
+                .attr("width", width)
+                .attr("height", height);
+
+            svg.selectAll('*').remove();
+
+            const g = svg.append("g")
+                .attr("transform", "translate(40,40)"); 
+
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 4]) 
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+
+            const verticalSeparation = 70; 
+            const horizontalSeparation = 160;
+
+            const treeLayout = d3.tree()
+                .nodeSize([verticalSeparation, horizontalSeparation]); 
+                
+            const root = d3.hierarchy(data);
+            treeLayout(root);
+
+            // Draw Links
+            g.selectAll(".link")
+                .data(root.links()) 
+                .enter().append("path")
+                .attr("class", "link")
+                .attr("d", d3.linkHorizontal()
+                    .x(d => d.y) 
+                    .y(d => d.x)); 
+
+            // Draw Nodes
+            const node = g.selectAll(".node")
+                .data(root.descendants()) 
+                .enter().append("g")
+                .attr("class", d => "node" + (d.depth === 0 ? " node--root" : "") + (isAdmin ? " node--admin" : ""))
+                .attr("transform", d => `translate(${d.y},${d.x})`); 
+
+            
+            // --- TEXT WRAPPING AND DIMENSION CALCULATION ---
+            node.append("text")
+                .attr("class", "node-text")
+                .text(d => d.data.name)
+                .attr("text-anchor", "middle")
+                .each(function(d) {
+                    const textElement = d3.select(this);
+                    const words = d.data.name.split(/\s+/).filter(w => w.length > 0);
+                    const numLines = words.length;
+
+                    // Calculate the initial vertical offset to center the block of text within the node
+                    const initialDyOffset = -((numLines - 1) * TreeRenderer.LINE_HEIGHT / 2);
+
+                    textElement.text(null); // Clear the initial text
+
+                    words.forEach((word, i) => {
+                        textElement.append("tspan")
+                            .attr("x", 0)
+                            // The first tspan uses the calculated initial offset. Subsequent tspans use LINE_HEIGHT
+                            .attr("dy", i === 0 ? `${initialDyOffset}px` : `${TreeRenderer.LINE_HEIGHT}px`)
+                            .text(word);
+                    });
+                    
+                    const requiredHeight = numLines * TreeRenderer.LINE_HEIGHT + TreeRenderer.Y_PADDING;
+                    const requiredWidth = TreeRenderer.MIN_NODE_WIDTH; 
+
+                    // Store dimensions on the node object for the rectangle
+                    d.nodeDimensions = { width: requiredWidth, height: requiredHeight };
+                });
+
+            // 2. Insert the rectangle based on the calculated dimensions
+            node.insert("rect", ":first-child") 
+                .attr("width", d => d.nodeDimensions.width)
+                .attr("height", d => d.nodeDimensions.height)
+                .attr("x", d => -(d.nodeDimensions.width / 2))
+                .attr("y", d => -(d.nodeDimensions.height / 2));
+
+            // Attach click handler ONLY if in Admin Mode
+            if (isAdmin) {
+                node.on('click', (event, d) => {
+                    event.stopPropagation(); 
+                    TreeData.openNodeEditModal(d);
+                });
+            }
+
+            const initialScale = 0.7;
+            svg.call(zoom.transform, d3.zoomIdentity
+                .translate(width / 4, height / 2) 
+                .scale(initialScale)
+            );
+        }
+    };
+    
+    // --- INITIALIZATION ---
+    window.addEventListener('resize', TreeRenderer.resizeHandler.bind(TreeRenderer));
+    AuthManager.init();
+    TreeData.init();
+
   </script>
 </body>
 </html>
