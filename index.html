@@ -28,7 +28,7 @@
       fill: #fff;
       stroke: #3182CE;
       stroke-width: 2px;
-      cursor: default; /* Default cursor for view-only */
+      cursor: default;
       rx: 6; ry: 6;
     }
     /* Admin mode indicates nodes are clickable */
@@ -39,11 +39,11 @@
     }
     .node text {
       font-size: 11px; font-weight: 500; fill: #333; pointer-events: none; 
-      text-anchor: middle; dominant-baseline: middle; 
+      /* No need for dominant-baseline as we handle centering with tspan dy attributes */
     }
     .node--root rect { fill: #3182CE; stroke: #2C5282; }
     .node--root text { fill: white; font-weight: bold; }
-    .node--root.node--admin rect { stroke: #D53F8C; } /* Root node admin color */
+    .node--root.node--admin rect { stroke: #D53F8C; }
 
     /* Modal Styling */
     .modal-overlay {
@@ -154,7 +154,7 @@
     </div>
   </div>
 
-  <!-- Modal for Node Editing (NEW) -->
+  <!-- Modal for Node Editing -->
   <div id="nodeEditModal" class="modal-overlay hidden">
     <div class="modal-content">
       <h2 class="text-xl font-bold mb-4 text-red-700">Edit Member: <span id="currentMemberName" class="font-extrabold"></span></h2>
@@ -235,7 +235,7 @@
     
     let currentTreeData = null;
     let userId = null;
-    let isAdminMode = false; // NEW global state for edit mode
+    let isAdminMode = false;
 
     // --- UTILITY FUNCTIONS FOR TREE MANIPULATION ---
     
@@ -270,8 +270,6 @@
             path.unshift(current.data.name);
             current = current.parent;
         }
-        // Slice the first element (which is the root name, usually "Jia Liok Ngo...") 
-        // We only need the path starting from the root's children downwards.
         return path;
     }
 
@@ -394,7 +392,7 @@
     }
 
 
-    // --- AUTH & LOGIN FUNCTIONS (Kept from previous version) ---
+    // --- AUTH & LOGIN FUNCTIONS ---
 
     window.openLoginModal = function() {
         document.getElementById('loginModal').classList.remove('hidden');
@@ -443,7 +441,7 @@
         }
     }
 
-    // Password Change Functions (Kept from previous version)
+    // Password Change Functions
     window.openPasswordChangeModal = function() {
         document.getElementById('passwordChangeModal').classList.remove('hidden');
         document.getElementById('passwordChangeError').classList.add('hidden');
@@ -528,7 +526,7 @@
         const loginButton = document.getElementById('loginButton');
 
         const isUserAdmin = userId && ADMIN_UIDS.includes(userId);
-        isAdminMode = isUserAdmin; // Update the global state
+        isAdminMode = isUserAdmin;
 
         // Re-draw the tree to apply the admin styling and click handlers
         if(currentTreeData) {
@@ -604,17 +602,20 @@
     const initialJsonStructure = {
       name: "Jia Liok Ngo (Ancestor)", 
       children: [
-        { name: "johnny", children: [{ name: "Magdalena" }, { name: "Yunita", children: [{ name: "Vince" }, { name: "Gwen" }] }, { name: "Juliana" }] },
-        { name: "katerin" },
-        { name: "justin", children: [{ name: "Yan", children: [{ name: "prina" }, { name: "nerva", children: [{ name: "razya" }] }, { name: "wiwin", children: [{ name: "lovna" }, { name: "ale" }] }] }, { name: "Op", children: [{ name: "irene", children: [{ name: "gemma" }] }, { name: "astrid" }] }, { name: "Irvan", children: [{ name: "fanny", children: [{ name: "mikha" }] }, { name: "vivian" }] }, { name: "yanty", children: [{ name: "janice" }, { name: "geo" }] }, { name: "wina", children: [{ name: "anet" }, { name: "serlin" }] }, { name: "irsan" }] },
-        { name: "diana" },
-        { name: "liance", children: [{ name: "nini", children: [{ name: "jason" }, { name: "janice" }] }, { name: "titi", children: [{ name: "justin" }, { name: "julian" }] }, { name: "tina", children: [{ name: "jeremy" }] }, { name: "victor", children: [{ name: "monic" }, { name: "jace" }] }] },
-        { name: "tresnawati", children: [{ name: "vidya", children: [{ name: "Niko" }, { name: "Andre" }, { name: "Madeline" }] }, { name: "Viko", children: [{ name: "Adeline" }] }, { name: "Theo", children: [{ name: "Gerald" }, { name: "Kevin" }, { name: "Adelle" }] }, { name: "Siska", children: [{ name: "Angel" }, { name: "Nalda" }, { name: "Casia" }] }, { name: "Keke", children: [{ name: "Aldrich" }, { name: "Bryant (that’s me)" }, { name: "Christy" }] }] }
+        { name: "Johnny", children: [{ name: "Magdalena" }, { name: "Yunita Omega", children: [{ name: "Vince" }, { name: "Gwen" }] }, { name: "Juliana" }] },
+        { name: "Katerin" },
+        { name: "Justin Samuel", children: [{ name: "Yan" }, { name: "Op" }, { name: "Irvan" }, { name: "Yanty" }, { name: "Wina" }, { name: "Irsan" }] },
+        { name: "Diana", children: [{ name: "Alex" }] },
+        { name: "Liance", children: [{ name: "Nini", children: [{ name: "Jason" }, { name: "Janice" }] }, { name: "Titi", children: [{ name: "Justin" }, { name: "Julian" }] }, { name: "Tina", children: [{ name: "Jeremy" }] }, { name: "Victor Thomas", children: [{ name: "Monic" }, { name: "Jace" }] }] },
+        { name: "Tresnawati", children: [{ name: "Vidya", children: [{ name: "Niko" }, { name: "Andre" }, { name: "Madeline" }] }, { name: "Viko" }, { name: "Theo", children: [{ name: "Gerald" }, { name: "Kevin" }, { name: "Adelle" }] }, { name: "Siska" }, { name: "Keke Maria", children: [{ name: "Aldrich" }, { name: "Bryant (that’s me)" }, { name: "Christy Omega Aryadi" }] }] }
       ]
     };
 
-    const nodeWidth = 100;
-    const nodeHeight = 30;
+    // Constants for dynamic node sizing and layout
+    const LINE_HEIGHT = 14; 
+    const X_PADDING = 12; // Horizontal padding inside the box
+    const Y_PADDING = 12; // Vertical padding inside the box
+    const MIN_NODE_WIDTH = 100; // Minimum width for the name box
 
     function drawTree(data) {
         if (!data || !data.name) return; 
@@ -640,12 +641,18 @@
 
         svg.call(zoom);
 
+        // Setting fixed separation for the tree layout
+        // Vertical separation (first argument) needs to be generous for multi-line text boxes
+        const verticalSeparation = 70; 
+        const horizontalSeparation = 160;
+
         const treeLayout = d3.tree()
-            .nodeSize([nodeHeight + 20, nodeWidth + 60]); 
+            .nodeSize([verticalSeparation, horizontalSeparation]); 
             
         const root = d3.hierarchy(data);
         treeLayout(root);
 
+        // Draw Links
         g.selectAll(".link")
             .data(root.links()) 
             .enter().append("path")
@@ -654,27 +661,61 @@
                 .x(d => d.y) 
                 .y(d => d.x)); 
 
+        // Draw Nodes
         const node = g.selectAll(".node")
             .data(root.descendants()) 
             .enter().append("g")
-            .attr("class", d => "node" + (d.depth === 0 ? " node--root" : "") + (isAdminMode ? " node--admin" : "")) // Apply admin class
+            .attr("class", d => "node" + (d.depth === 0 ? " node--root" : "") + (isAdminMode ? " node--admin" : ""))
             .attr("transform", d => `translate(${d.y},${d.x})`); 
 
-        node.append("rect")
-            .attr("width", nodeWidth)
-            .attr("height", nodeHeight)
-            .attr("x", -(nodeWidth / 2))
-            .attr("y", -(nodeHeight / 2)); 
-
+        
+        // --- TEXT WRAPPING AND DIMENSION CALCULATION ---
+        
+        // 1. Append the text element first
         node.append("text")
-            .attr("x", 0) 
-            .attr("y", 0) 
-            .text(d => d.data.name); 
-            
+            .attr("class", "node-text")
+            .text(d => d.data.name)
+            .attr("text-anchor", "middle")
+            .each(function(d) {
+                const textElement = d3.select(this);
+                // Split name by space to create individual lines
+                const words = d.data.name.split(/\s+/).filter(w => w.length > 0);
+                const numLines = words.length;
+
+                // Calculate the initial vertical offset to center the block of text within the node
+                const initialDyOffset = -((numLines - 1) * LINE_HEIGHT / 2);
+
+                textElement.text(null); // Clear the initial text
+
+                words.forEach((word, i) => {
+                    textElement.append("tspan")
+                        .attr("x", 0)
+                        // The first tspan uses the calculated initial offset. Subsequent tspans use LINE_HEIGHT
+                        .attr("dy", i === 0 ? `${initialDyOffset}px` : `${LINE_HEIGHT}px`)
+                        .text(word);
+                });
+                
+                // Calculate required dimensions
+                const requiredHeight = numLines * LINE_HEIGHT + Y_PADDING;
+                
+                // For simplicity and alignment, we keep a minimum fixed width, 
+                // but this could be dynamically calculated by measuring the longest word
+                const requiredWidth = MIN_NODE_WIDTH; 
+
+                // Store dimensions on the node object for the rectangle
+                d.nodeDimensions = { width: requiredWidth, height: requiredHeight };
+            });
+
+        // 2. Insert the rectangle based on the calculated dimensions
+        node.insert("rect", ":first-child") // Insert rect before text
+            .attr("width", d => d.nodeDimensions.width)
+            .attr("height", d => d.nodeDimensions.height)
+            .attr("x", d => -(d.nodeDimensions.width / 2))
+            .attr("y", d => -(d.nodeDimensions.height / 2));
+
         // Attach click handler ONLY if in Admin Mode
         if (isAdminMode) {
             node.on('click', (event, d) => {
-                // Stop the zoom event from interfering with the click
                 event.stopPropagation(); 
                 openNodeEditModal(d);
             });
