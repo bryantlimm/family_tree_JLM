@@ -103,7 +103,6 @@
   <!-- Firebase and D3 Logic -->
   <script type="module">
     // --- FIREBASE IMPORTS ---
-    // Note: Removed signInAnonymously since it is no longer required for read access
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -118,8 +117,13 @@
         appId: "1:581868402894:web:64a96854cf7badfc54b89f",
         measurementId: "G-Z2LLBDS6RQ"
     };
-    const ADMIN_UID = "8rO5MWkS5LM58YVyFbCuHZOhsoJ3"
-    const ADMIN_EMAIL = "bryantaryadi25@gmail.com";
+    
+    // --- ADMIN LIST: Add UIDs of all users who should have edit permissions here ---
+    const ADMIN_UIDS = [
+        "8rO5MWkS5LM58YVyFbCuHZOhsoJ3", // The original primary admin
+        // Add more UIDs for new administrators here!
+    ];
+
     const appId = firebaseConfig.projectId;
     
     // --- FIREBASE SETUP ---
@@ -134,21 +138,25 @@
     let currentTreeData = null;
     let userId = null;
 
-    // --- AUTHENTICATION FUNCTIONS (Simplified) ---
+    // --- AUTHENTICATION FUNCTIONS (Updated for flexible sign-in) ---
 
-    // Function to handle the admin login process
+    // Function to handle the admin login process, now prompting for email and password
     window.adminSignIn = async function() {
-        const password = prompt("Enter Admin Password:"); 
+        const email = prompt("Enter Admin Email:");
+        if (!email) return;
         
+        const password = prompt("Enter Admin Password:"); 
         if (!password) return;
 
         try {
-            await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
+            // Note: This signs in any valid Firebase Auth user, but only users 
+            // whose UIDs are in ADMIN_UIDS get edit rights.
+            await signInWithEmailAndPassword(auth, email, password);
             console.log("Admin signed in successfully!"); 
         } catch (error) {
             console.error("Admin Sign In Error:", error.message);
-            // This error will be handled by onAuthStateChanged if successful
             console.error("Admin sign-in failed. Check console for details.");
+            alert("Login failed. Please check your email and password."); // Using alert here for simple login failure feedback
         }
     }
     
@@ -159,8 +167,8 @@
         const editButton = document.getElementById('editButton');
         const loginButton = document.getElementById('loginButton');
 
-        // CRITICAL CHECK: Determine if the currently signed-in user is the Admin
-        const isUserAdmin = userId === ADMIN_UID;
+        // CRITICAL CHECK: Determine if the currently signed-in user is an Admin
+        const isUserAdmin = userId && ADMIN_UIDS.includes(userId);
 
         if (isUserAdmin) {
             authStatusElement.innerHTML = `<span class="text-green-600 font-bold">ADMIN MODE (Signed In)</span>`;
@@ -174,15 +182,15 @@
             editButton.classList.remove('flex');
             loginButton.classList.remove('hidden');
         }
-        
-        // Data loading is initiated outside of this listener now, as it doesn't need auth.
     });
 
     // --- DATA HANDLING (READ) ---
     function loadTreeData() {
         // Listen for real-time changes to the tree document
         onSnapshot(treeDocRef, (docSnap) => {
-            document.getElementById('authStatus').innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
+            if (auth.currentUser === null || !ADMIN_UIDS.includes(auth.currentUser.uid)) {
+                 document.getElementById('authStatus').innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
+            }
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -207,7 +215,7 @@
             console.error("Firestore Error:", error);
             const authStatusElement = document.getElementById('authStatus');
             
-            // This error now ONLY occurs if the security rules are too strict!
+            // This error now only occurs if the security rules are too strict!
             if (error.code === 'permission-denied') {
                 authStatusElement.innerHTML = `<p class="text-xs text-red-500 font-bold mt-1">Error: Permission Denied. Please ensure the Firestore security rules allow unauthenticated public reads.</p>`;
                 currentTreeData = { name: "Error: Permission Denied" };
@@ -215,12 +223,10 @@
             }
         });
         
-        // Ensure the drawing function is responsive to window resize
         window.removeEventListener('resize', resizeHandler);
         window.addEventListener('resize', resizeHandler);
     }
 
-    // Start loading data immediately (relying on public read rule)
     loadTreeData();
 
     function resizeHandler() {
