@@ -68,6 +68,11 @@
           <button id="editButton" class="hidden items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition duration-150" onclick="openEditModal()">
               Admin: Edit Tree Data
           </button>
+
+          <!-- NEW: Admin Login Button -->
+          <button id="loginButton" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150" onclick="adminSignIn()">
+              Admin Login
+          </button>
           
           <div id="authStatus" class="text-sm text-gray-500">Initializing...</div>
       </div>
@@ -98,12 +103,12 @@
   <!-- Firebase and D3 Logic -->
   <script type="module">
     // --- FIREBASE IMPORTS ---
+    // Note: Added signInWithEmailAndPassword for admin login
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Global Firebase variables provided by the environment
-    // const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    // --- FIREBASE CONFIGURATION (Verified) ---
     const firebaseConfig = {
         apiKey: "AIzaSyAPoBkkYoYpHxq5EB36iqSCzSPA6Y4xVDw",
         authDomain: "familytreeapp-70fd0.firebaseapp.com",
@@ -116,47 +121,48 @@
     const ADMIN_UID = "8rO5MWkS5LM58YVyFbCuHZOhsoJ3"
     const ADMIN_EMAIL = "bryantaryadi25@gmail.com";
     const appId = firebaseConfig.projectId;
-    const initialAuthToken = null;
-    // const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    const initialAuthToken = null; // We are not using Canvas's token now
     
     
     // --- FIREBASE SETUP ---
-    setLogLevel('debug'); // Enable logs for easier debugging
+    setLogLevel('debug'); 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Document reference (We will store the entire tree structure in one document)
-    // Path: /artifacts/{appId}/public/data/familyTree/current
+    // Document reference 
     const treeDocRef = doc(db, `artifacts/${appId}/public/data/familyTree/current`);
     
     let currentTreeData = null;
     let isAuthReady = false;
     let userId = null;
 
+    // --- AUTHENTICATION FUNCTIONS (UPDATED) ---
 
-    // --- AUTHENTICATION & INITIALIZATION ---
+    // Function to handle the actual login process for the admin
+    window.adminSignIn = async function() {
+        const password = prompt("Enter Admin Password:"); 
+        
+        if (!password) return;
 
+        try {
+            await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
+            // Alert is replaced with an empty message to prevent the iframe issue, 
+            // the onAuthStateChanged listener handles the UI change.
+            console.log("Admin signed in successfully!"); 
+        } catch (error) {
+            console.error("Admin Sign In Error:", error.message);
+            // Use a message box or console log instead of alert
+            console.error("Admin sign-in failed. Check console for details.");
+        }
+    }
+    
+    // Initial anonymous sign-in to satisfy public read rules
     async function initializeAuth() {
-        if (initialAuthToken) {
-            try {
-                await signInWithCustomToken(auth, initialAuthToken);
-            } catch (error) {
-                console.error("Error signing in with custom token:", error);
-                // If custom token fails, fall back to anonymous sign-in
-                try {
-                     await signInAnonymously(auth);
-                } catch(e) {
-                     console.error("Error signing in anonymously:", e);
-                }
-            }
-        } else {
-             // If token is missing, sign in anonymously
-             try {
-                 await signInAnonymously(auth);
-             } catch(e) {
-                 console.error("Error signing in anonymously:", e);
-             }
+        try {
+             await signInAnonymously(auth);
+        } catch(e) {
+             console.error("Error signing in anonymously:", e);
         }
     }
 
@@ -164,15 +170,26 @@
         isAuthReady = true;
         userId = user ? user.uid : null;
         const authStatusElement = document.getElementById('authStatus');
+        const editButton = document.getElementById('editButton');
+        const loginButton = document.getElementById('loginButton');
 
-        if (user) {
-            authStatusElement.innerHTML = `<span class="text-green-600">Admin Mode (User: ${userId.substring(0, 6)}...)</span>`;
-            document.getElementById('editButton').classList.remove('hidden');
-            document.getElementById('editButton').classList.add('flex');
+        // CRITICAL CHECK: Determine if the currently signed-in user is the Admin
+        const isUserAdmin = userId === ADMIN_UID;
+
+        if (isUserAdmin) {
+            authStatusElement.innerHTML = `<span class="text-green-600 font-bold">ADMIN MODE (Signed In)</span>`;
+            editButton.classList.remove('hidden');
+            editButton.classList.add('flex');
+            loginButton.classList.add('hidden');
         } else {
-            authStatusElement.innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
-            document.getElementById('editButton').classList.add('hidden');
-            document.getElementById('editButton').classList.remove('flex');
+            // This covers anonymous users and other authenticated users
+            authStatusElement.innerHTML = `<span class="text-gray-500">View Only Mode (Signed In)</span>`;
+            editButton.classList.add('hidden');
+            editButton.classList.remove('flex');
+            // Only show login button if we are not the admin
+            if (user && user.isAnonymous) {
+                loginButton.classList.remove('hidden');
+            }
         }
 
         // Only start loading data once authentication is complete
@@ -210,8 +227,8 @@
                 console.log("Tree document not found. Using placeholder data.");
                 currentTreeData = { name: "Jia Liok Ngo (Database Empty)" };
                 drawTree(currentTreeData);
-                // Prompt user to initialize data if they are admin
-                if (userId) {
+                // Prompt user to initialize data if they are admin (check again for the latest user state)
+                if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
                     document.getElementById('authStatus').innerHTML += `<p class="text-xs text-orange-500">Click 'Admin: Edit Tree Data' to initialize.</p>`;
                 }
             }
@@ -233,12 +250,6 @@
 
     // --- DATA HANDLING (WRITE) ---
 
-    // IMPORTANT: This is the structure you need to create in Firestore initially:
-    // Collection: artifacts/{appId}/public/data/familyTree
-    // Document: current
-    // Field: treeJson (Type: String)
-    // Value: The JSON string of your tree data (see example below)
-
     const initialJsonStructure = {
       name: "Jia Liok Ngo",
       children: [
@@ -251,17 +262,17 @@
       ]
     };
     
-    function openEditModal() {
+    window.openEditModal = function() {
         document.getElementById('editError').classList.add('hidden');
         document.getElementById('jsonEditor').value = JSON.stringify(currentTreeData || initialJsonStructure, null, 2);
         document.getElementById('editModal').classList.remove('hidden');
     }
 
-    function closeEditModal() {
+    window.closeEditModal = function() {
         document.getElementById('editModal').classList.add('hidden');
     }
 
-    async function saveData() {
+    window.saveData = async function() {
         const jsonEditor = document.getElementById('jsonEditor');
         const editError = document.getElementById('editError');
         editError.classList.add('hidden');
