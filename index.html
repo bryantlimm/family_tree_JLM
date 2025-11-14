@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Family Tree of Jia Liok Ngo</title>
+  <!-- Load Tailwind CSS for modern styling -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Load D3.js v7 library -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -11,10 +12,10 @@
     /* Custom styling for the tree container */
     #tree-container { 
         width: 100%; 
-        height: 100vh; 
+        height: 90vh; 
         background-color: #f7f7f7;
         border-radius: 0.5rem;
-        overflow: hidden; /* Prevent scrollbars on the container */
+        overflow: hidden; 
     }
     
     /* Style for the links (lines between nodes) */
@@ -24,45 +25,51 @@
       stroke-width: 1.5px;
     }
 
-    /* Style for the nodes (circles) */
-    .node circle {
+    /* Style for the nodes (rectangles/cards) */
+    .node rect {
       fill: #fff;
       stroke: #3182CE;
-      stroke-width: 3px;
+      stroke-width: 2px;
       cursor: pointer;
+      rx: 6; /* Rounded corners */
+      ry: 6;
     }
     
     /* Style for the text labels */
     .node text {
-      font-size: 10px;
+      font-size: 11px;
+      font-weight: 500;
       fill: #333;
-      pointer-events: none; /* Make text not interfere with node clicking */
+      pointer-events: none; 
+      text-anchor: middle; /* Center the text horizontally */
+      dominant-baseline: middle; /* Center the text vertically */
     }
 
     /* Style for the root node to make it stand out */
-    .node--root circle {
+    .node--root rect {
       fill: #3182CE;
       stroke: #2C5282;
     }
     .node--root text {
-      fill: rgb(17, 17, 17);
+      fill: white;
       font-weight: bold;
     }
   </style>
 </head>
 
 <body class="bg-gray-100 flex flex-col items-center p-4 min-h-screen font-sans">
-
-    <header class="mb-6 text-center">
+  
+  <header class="mb-6 text-center">
       <h1 class="text-3xl font-bold text-indigo-700">The Family Tree of Jia Liok Ngo</h1>
-      <!-- <p class="text-gray-600 mt-1">Interactive visualization powered by D3.js. Use mouse wheel/trackpad to zoom and drag to pan!</p> -->
-    </header>
+    
+  </header>
 
   <div id="tree-container" class="w-full max-w-6xl shadow-xl rounded-lg border border-gray-200">
     <svg id="tree"></svg>
   </div>
 
   <script>
+    // Set up Tailwind configuration dynamically
     tailwind.config = {
         theme: {
             extend: {
@@ -72,6 +79,10 @@
             }
         }
     }
+
+    // Define card dimensions for consistent layout
+    const nodeWidth = 100;
+    const nodeHeight = 30;
 
     function drawTree(data) {
         // Dimensions
@@ -88,7 +99,6 @@
         svg.selectAll('*').remove();
 
         // Setup the group element for the tree and apply zoom/pan behavior
-        // We initialize the group that will be transformed by zooming/panning
         const g = svg.append("g")
             .attr("transform", "translate(40,40)"); 
 
@@ -103,10 +113,11 @@
 
         // Define the tree layout
         const treeLayout = d3.tree()
-            // Set size dynamically, giving horizontal room for labels
-            .size([height - 80, width - 150]); 
-
-        // 1. Create the hierarchical data structure (d3.hierarchy expects the root node)
+            // Use nodeSize to set the distance between nodes based on the card dimensions
+            // Horizontal tree: [vertical distance (between siblings), horizontal distance (between levels)]
+            .nodeSize([nodeHeight + 20, nodeWidth + 60]); 
+            
+        // 1. Create the hierarchical data structure
         const root = d3.hierarchy(data);
 
         // 2. Apply the tree layout to calculate node positions (x, y)
@@ -114,35 +125,39 @@
 
         // 3. Draw the links (lines)
         g.selectAll(".link")
-            .data(root.links()) // D3 method to extract links from the tree
+            .data(root.links()) 
             .enter().append("path")
             .attr("class", "link")
             .attr("d", d3.linkHorizontal()
-                .x(d => d.y) // Horizontal layout uses y for X-coordinate
-                .y(d => d.x)); // and x for Y-coordinate
+                // Links start/end at the center of the parent/child nodes (0,0 of the group transform)
+                .x(d => d.y) 
+                .y(d => d.x)); 
 
-        // 4. Draw the nodes (circles and text)
+        // 4. Draw the nodes (rectangles and text)
         const node = g.selectAll(".node")
-            .data(root.descendants()) // D3 method to get all nodes
+            .data(root.descendants()) 
             .enter().append("g")
             .attr("class", d => "node" + (d.depth === 0 ? " node--root" : ""))
-            .attr("transform", d => `translate(${d.y},${d.x})`); // Position the group
+            .attr("transform", d => `translate(${d.y},${d.x})`); 
 
-        // Append circles for the nodes
-        node.append("circle")
-            .attr("r", 4.5); // Radius of the circle
+        // Append the rectangle (the card)
+        node.append("rect")
+            .attr("width", nodeWidth)
+            .attr("height", nodeHeight)
+            // Position the rect so that its center is at the (0,0) point of the group's translation
+            .attr("x", -(nodeWidth / 2))
+            .attr("y", -(nodeHeight / 2)); 
 
-        // Append text labels for the nodes
+        // Append text labels, centered in the rect
         node.append("text")
-            .attr("dy", 3) // Vertical offset
-            .attr("x", d => d.children ? -8 : 8) // Horizontal offset (left for parents, right for leaves)
-            .attr("text-anchor", d => d.children ? "end" : "start") // Alignment
-            .text(d => d.data.name); // Use the 'name' from the JSON data
+            .attr("x", 0) // Center horizontally
+            .attr("y", 0) // Center vertically
+            .text(d => d.data.name); 
 
         // Initial view reset and center the tree on the root node
-        const initialScale = 0.6;
+        const initialScale = 0.7;
         svg.call(zoom.transform, d3.zoomIdentity
-            .translate(width / 4, height / 2)
+            .translate(width / 4, height / 2) 
             .scale(initialScale)
         );
     }
@@ -152,33 +167,28 @@
     // ----------------------------------------------------------------------
     
     function loadAndDraw() {
-        // Fetch the JSON data from the separate file
         fetch("famtree.json")
             .then(res => {
                 if (!res.ok) {
-                    throw new Error(`HTTP status ${res.status}: Failed to load famtree.json. Ensure it is in the same folder and you are running a web server (e.g., python3 -m http.server).`);
+                    throw new Error(`HTTP status ${res.status}: Failed to load famtree.json.`);
                 }
                 return res.json();
             })
             .then(data => {
                 drawTree(data);
-                // Attach resize listener only after successful load
                 window.addEventListener('resize', () => drawTree(data));
             })
             .catch(error => {
                 console.error("Error loading or processing family tree data:", error);
-                // Display user-friendly error
                 const treeDiv = document.getElementById("tree-container");
                 treeDiv.innerHTML = `<div class="p-8 text-center text-red-600 bg-red-100 rounded-lg">
                     <p class="font-bold">Error Loading Tree Data</p>
-                    <p class="text-sm">The application could not find or load <code>famtree.json</code>.</p>
-                    <p class="text-xs mt-2">To fix this, please ensure both <code>index.html</code> and <code>famtree.json</code> are in the same folder and you are running a local web server (like <code>python3 -m http.server</code>) to view the file.</p>
+                    <p class="text-sm">Please ensure <code>famtree.json</code> is in the same folder and you are running a local web server.</p>
                     <p class="text-xs mt-2 text-red-800">Error: ${error.message}</p>
                 </div>`;
             });
     }
 
-    // Run the loading function when the page is ready
     loadAndDraw();
 
   </script>
