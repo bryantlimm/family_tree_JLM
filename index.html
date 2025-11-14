@@ -45,7 +45,7 @@
       z-index: 1000;
     }
     .modal-content {
-      background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px;
+      background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     }
   </style>
@@ -78,7 +78,7 @@
           </div>
 
           <!-- Admin Login Button -->
-          <button id="loginButton" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150" onclick="adminSignIn()">
+          <button id="loginButton" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150" onclick="openLoginModal()">
               Admin Login
           </button>
           
@@ -89,10 +89,35 @@
   <div id="tree-container" class="w-full max-w-6xl shadow-xl rounded-lg border border-gray-200">
     <svg id="tree"></svg>
   </div>
+  
+  <!-- Modal for Admin Login (NEW/FIXED) -->
+  <div id="loginModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h2 class="text-xl font-bold mb-4 text-indigo-700">Admin Login</h2>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="adminEmail" class="block text-sm font-medium text-gray-700">Email</label>
+          <input type="email" id="adminEmail" placeholder="Enter admin email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label for="adminPassword" class="block text-sm font-medium text-gray-700">Password</label>
+          <input type="password" id="adminPassword" placeholder="Enter password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+      </div>
+
+      <div id="loginError" class="text-red-500 text-sm mt-4 hidden"></div>
+
+      <div class="flex justify-end space-x-3 mt-6">
+        <button onclick="closeLoginModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+        <button onclick="handleAdminLogin()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Login</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal for Data Editing -->
   <div id="editModal" class="modal-overlay hidden">
-    <div class="modal-content">
+    <div class="modal-content max-w-600px">
       <h2 class="text-xl font-bold mb-4 text-indigo-700">Edit Family Tree JSON</h2>
       <p class="text-sm text-red-600 mb-4">CAUTION: This directly edits the live database. Ensure the JSON structure remains correct!</p>
       
@@ -146,36 +171,57 @@
     let currentTreeData = null;
     let userId = null;
 
-    // --- AUTHENTICATION FUNCTIONS ---
+    // --- LOGIN MODAL FUNCTIONS (NEW) ---
+    
+    window.openLoginModal = function() {
+        document.getElementById('loginModal').classList.remove('hidden');
+        document.getElementById('loginError').classList.add('hidden');
+        document.getElementById('adminEmail').value = '';
+        document.getElementById('adminPassword').value = '';
+    }
 
-    // Function to handle the admin login process, now prompting for email and password
-    window.adminSignIn = async function() {
-        const email = prompt("Enter Admin Email:");
-        if (!email) return;
+    window.closeLoginModal = function() {
+        document.getElementById('loginModal').classList.add('hidden');
+    }
+
+    // Function to handle the actual sign-in from the modal
+    window.handleAdminLogin = async function() {
+        const emailInput = document.getElementById('adminEmail');
+        const passwordInput = document.getElementById('adminPassword');
+        const loginError = document.getElementById('loginError');
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        loginError.classList.add('hidden');
         
-        const password = prompt("Enter Admin Password:"); 
-        if (!password) return;
+        if (!email || !password) {
+            loginError.textContent = "Please enter both email and password.";
+            loginError.classList.remove('hidden');
+            return;
+        }
 
         try {
             // Note: This signs in any valid Firebase Auth user.
             await signInWithEmailAndPassword(auth, email, password);
             console.log("Admin signed in successfully!"); 
+            closeLoginModal(); // Close modal on success
         } catch (error) {
+            // Display error message inside the modal
             console.error("Admin Sign In Error:", error.message);
-            console.error("Admin sign-in failed. Check console for details.");
-            alert("Login failed. Please check your email and password."); // Using alert here for simple login failure feedback
+            loginError.textContent = "Login failed. Check your email and password.";
+            loginError.classList.remove('hidden');
         }
     }
     
-    // Function to handle admin sign out (NEW)
+    // Function to handle admin sign out 
     window.adminSignOut = async function() {
         try {
             await signOut(auth);
             console.log("Admin signed out successfully!");
-            // onAuthStateChanged listener handles UI update
         } catch (error) {
             console.error("Sign Out Error:", error.message);
-            alert("Sign out failed."); 
+            // Replaced alert with console error as the UI will naturally update.
         }
     }
 
@@ -184,7 +230,7 @@
         userId = user ? user.uid : null;
         const authStatusElement = document.getElementById('authStatus');
         const editButton = document.getElementById('editButton');
-        const signOutButton = document.getElementById('signOutButton'); // NEW
+        const signOutButton = document.getElementById('signOutButton');
         const loginButton = document.getElementById('loginButton');
 
         // CRITICAL CHECK: Determine if the currently signed-in user is an Admin
@@ -196,7 +242,7 @@
             // Show Admin controls
             editButton.classList.remove('hidden');
             editButton.classList.add('flex');
-            signOutButton.classList.remove('hidden'); // SHOW SIGN OUT
+            signOutButton.classList.remove('hidden'); 
             signOutButton.classList.add('flex');
             loginButton.classList.add('hidden'); // HIDE LOGIN
         } else {
@@ -206,7 +252,7 @@
             // Hide Admin controls
             editButton.classList.add('hidden');
             editButton.classList.remove('flex');
-            signOutButton.classList.add('hidden'); // HIDE SIGN OUT
+            signOutButton.classList.add('hidden'); 
             signOutButton.classList.remove('flex');
             loginButton.classList.remove('hidden'); // SHOW LOGIN
         }
