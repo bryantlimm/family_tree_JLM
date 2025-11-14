@@ -266,6 +266,25 @@
     let userId = null;
     let isAdminMode = false;
 
+    let isVerticalLayout = false; // Tracks the current layout state
+
+    // Global function to toggle the layout direction
+    window.toggleLayout = function() {
+        isVerticalLayout = !isVerticalLayout;
+        const button = document.getElementById('layout-toggle-button');
+        
+        if (isVerticalLayout) {
+            button.textContent = 'Switch to Horizontal Layout';
+        } else {
+            button.textContent = 'Switch to Vertical Layout';
+        }
+        
+        // Redraw the tree with the new layout setting
+        if (currentTreeData) {
+            drawTree(currentTreeData);
+        }
+    }
+
     // --- UTILITY FUNCTIONS FOR TREE MANIPULATION ---
     
     // Recursive function to find the node and its parent, using an array of names as the path
@@ -842,8 +861,21 @@
 
         svg.selectAll('*').remove();
 
+        // Dynamically set the initial translation for centering/offset
+        let initialTranslateX, initialTranslateY;
+        
+        if (isVerticalLayout) {
+            // For vertical layout: translate to the center-top
+            initialTranslateX = width / 2;
+            initialTranslateY = 40;
+        } else {
+            // For horizontal layout: translate to the left-center
+            initialTranslateX = 40;
+            initialTranslateY = height / 2; // Center vertically now
+        }
+
         const g = svg.append("g")
-            .attr("transform", "translate(40,40)"); 
+            .attr("transform", `translate(${initialTranslateX},${initialTranslateY})`); 
 
         const zoom = d3.zoom()
             .scaleExtent([0.1, 4]) 
@@ -853,13 +885,47 @@
 
         svg.call(zoom);
 
-        // Setting fixed separation for the tree layout
-        // Vertical separation (first argument) needs to be generous for multi-line text boxes
-        const verticalSeparation = 70; 
-        const horizontalSeparation = 160;
+        // Constants for dynamic node sizing and layout (from your previous code)
+        const LINE_HEIGHT = 14; 
+        const X_PADDING = 12;
+        const Y_PADDING = 12;
+        const MIN_NODE_WIDTH = 100;
+        
+        // Define separation based on layout
+        const separationDistance = 160;
+        const nodeSeparation = 70;
 
-        const treeLayout = d3.tree()
-            .nodeSize([verticalSeparation, horizontalSeparation]); 
+        let treeLayout;
+        let linkGenerator;
+        let nodeTranslation;
+
+        if (isVerticalLayout) {
+            // Vertical Layout (Top-to-Bottom)
+            treeLayout = d3.tree()
+                .size([width - 80, height - 80]); // Use full SVG size minus margins
+                
+            // Use .nodeSize() to control separation, but we must use .size() with the full dimensions first
+            // Now, we'll re-apply the layout with nodeSize to control spacing consistently
+            treeLayout = d3.tree()
+                .nodeSize([nodeSeparation, separationDistance]);
+                
+            linkGenerator = d3.linkVertical() // Use vertical link for T-B
+                .x(d => d.x) 
+                .y(d => d.y);
+            
+            nodeTranslation = d => `translate(${d.x},${d.y})`; // X is horizontal, Y is vertical
+
+        } else {
+            // Horizontal Layout (Left-to-Right) - Your original
+            treeLayout = d3.tree()
+                .nodeSize([nodeSeparation, separationDistance]); // [vertical, horizontal] node separation
+                
+            linkGenerator = d3.linkHorizontal() // Use horizontal link for L-R
+                .x(d => d.y) 
+                .y(d => d.x);
+            
+            nodeTranslation = d => `translate(${d.y},${d.x})`; // X is vertical, Y is horizontal (swapped)
+        }
             
         const root = d3.hierarchy(data);
         treeLayout(root);
@@ -869,19 +935,17 @@
             .data(root.links()) 
             .enter().append("path")
             .attr("class", "link")
-            .attr("d", d3.linkHorizontal()
-                .x(d => d.y) 
-                .y(d => d.x)); 
+            .attr("d", linkGenerator); // Use the dynamic link generator
 
         // Draw Nodes
         const node = g.selectAll(".node")
             .data(root.descendants()) 
             .enter().append("g")
             .attr("class", d => "node" + (d.depth === 0 ? " node--root" : "") + (isAdminMode ? " node--admin" : ""))
-            .attr("transform", d => `translate(${d.y},${d.x})`); 
+            .attr("transform", nodeTranslation); // Use the dynamic translation
 
         
-        // --- TEXT WRAPPING AND DIMENSION CALCULATION ---
+        // --- TEXT WRAPPING AND DIMENSION CALCULATION (UNCHANGED) ---
         
         // 1. Append the text element first
         node.append("text")
@@ -909,9 +973,6 @@
                 
                 // Calculate required dimensions
                 const requiredHeight = numLines * LINE_HEIGHT + Y_PADDING;
-                
-                // For simplicity and alignment, we keep a minimum fixed width, 
-                // but this could be dynamically calculated by measuring the longest word
                 const requiredWidth = MIN_NODE_WIDTH; 
 
                 // Store dimensions on the node object for the rectangle
@@ -925,7 +986,6 @@
             .attr("x", d => -(d.nodeDimensions.width / 2))
             .attr("y", d => -(d.nodeDimensions.height / 2));
 
-        // Attach click handler ONLY if in Admin Mode
         // Attach click handler based on the user mode
         if (isAdminMode) {
             // Admin mode: opens the editor modal
@@ -940,13 +1000,15 @@
                 openInfoModal(d);
             });
         }
-
-        const initialScale = 0.7;
-        svg.call(zoom.transform, d3.zoomIdentity
-            .translate(width / 4, height / 2) 
-            .scale(initialScale)
-        );
     }
   </script>
+
+  <div id="layout-controls" class="fixed bottom-4 right-4 z-50">
+      <button id="layout-toggle-button" 
+              class="px-4 py-2 text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition duration-150 shadow-lg" 
+              onclick="toggleLayout()">
+          Switch to Vertical Layout
+      </button>
+  </div>
 </body>
 </html>
