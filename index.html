@@ -412,6 +412,17 @@
                 break;
                 
             case 'delete':
+                // --- START OF CONFIRMATION STEP ---
+                const isConfirmed = confirm(`ARE YOU ABSOLUTELY SURE you want to delete ${targetNode.name} and ALL their descendants? This action cannot be undone.`);
+                
+                if (!isConfirmed) {
+                    // User clicked "Cancel"
+                    successElement.textContent = "Deletion cancelled.";
+                    successElement.classList.remove('hidden');
+                    return; // Exit the function without saving
+                }
+                // --- END OF CONFIRMATION STEP ---
+
                 if (activeNodePath.length === 1 || !targetParent) {
                     errorElement.textContent = "Cannot delete the root node.";
                     errorElement.classList.remove('hidden');
@@ -427,7 +438,7 @@
                 }
                 
                 shouldSave = true;
-                successMessage = targetNode.name + " and their descendants have been removed.";
+                successMessage = targetNode.name + " and their descendants have been permanently removed.";
                 break;
         }
 
