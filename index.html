@@ -61,7 +61,16 @@
   
   <header class="mb-6 text-center">
       <h1 class="text-3xl font-bold text-indigo-700">The Family Tree of Jia Liok Ngo</h1>
-    
+      
+      <!-- NEW FEATURE: Request Button -->
+      <div class="mt-4">
+          <a href="mailto:bryantaryadi25@gmail.com?subject=New%20Family%20Member%20Addition%20Request%20(Jia%20Liok%20Ngo%20Tree)&body=Hello%20Bryant%2C%0D%0A%0D%0AI%20would%20like%20to%20request%20the%20addition%20of%20a%20new%20family%20member%20to%20the%20tree.%0D%0A%0D%0A---%20Required%20Details%20---%0D%0A-Name%20of%20New%20Member%3A%0D%0A-Parent's%20Name%20(Existing%20on%20Tree)%3A%0D%0A-Relationship%20(e.g.%2C%20Child%2C%20Spouse)%3A%0D%0A---%20%0D%0A%0D%0AThanks!" 
+             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+              + Request New Member Addition
+          </a>
+          <p class="text-xs text-gray-500 mt-1">Click to send a request to the administrator (bryantaryadi25@gmail.com).</p>
+      </div>
+      
   </header>
 
   <div id="tree-container" class="w-full max-w-6xl shadow-xl rounded-lg border border-gray-200">
@@ -113,7 +122,6 @@
 
         // Define the tree layout
         const treeLayout = d3.tree()
-            // Use nodeSize to set the distance between nodes based on the card dimensions
             // Horizontal tree: [vertical distance (between siblings), horizontal distance (between levels)]
             .nodeSize([nodeHeight + 20, nodeWidth + 60]); 
             
