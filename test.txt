@@ -1,0 +1,207 @@
+this one is not connected to firebase
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Tree of Jia Liok Ngo</title>
+  <!-- Load Tailwind CSS for modern styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load D3.js v7 library -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    /* Custom styling for the tree container */
+    #tree-container { 
+        width: 100%; 
+        height: 90vh; 
+        background-color: #f7f7f7;
+        border-radius: 0.5rem;
+        overflow: hidden; 
+    }
+    
+    /* Style for the links (lines between nodes) */
+    .link {
+      fill: none;
+      stroke: #9d9d9d;
+      stroke-width: 1.5px;
+    }
+
+    /* Style for the nodes (rectangles/cards) */
+    .node rect {
+      fill: #fff;
+      stroke: #3182CE;
+      stroke-width: 2px;
+      cursor: pointer;
+      rx: 6; /* Rounded corners */
+      ry: 6;
+    }
+    
+    /* Style for the text labels */
+    .node text {
+      font-size: 11px;
+      font-weight: 500;
+      fill: #333;
+      pointer-events: none; 
+      text-anchor: middle; /* Center the text horizontally */
+      dominant-baseline: middle; /* Center the text vertically */
+    }
+
+    /* Style for the root node to make it stand out */
+    .node--root rect {
+      fill: #3182CE;
+      stroke: #2C5282;
+    }
+    .node--root text {
+      fill: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 flex flex-col items-center p-4 min-h-screen font-sans">
+  
+  <header class="mb-6 text-center">
+      <h1 class="text-3xl font-bold text-indigo-700">The Family Tree of Jia Liok Ngo</h1>
+      
+      <!-- NEW FEATURE: Request Button -->
+      <div class="mt-4">
+          <a href="mailto:bryantaryadi25@gmail.com?subject=New%20Family%20Member%20Addition%20Request%20(Jia%20Liok%20Ngo%20Tree)&body=Hello%20Bryant%2C%0D%0A%0D%0AI%20would%20like%20to%20request%20the%20addition%20of%20a%20new%20family%20member%20to%20the%20tree.%0D%0A%0D%0A---%20Required%20Details%20---%0D%0A-Name%20of%20New%20Member%3A%0D%0A-Parent's%20Name%20(Existing%20on%20Tree)%3A%0D%0A-Relationship%20(e.g.%2C%20Child%2C%20Spouse)%3A%0D%0A---%20%0D%0A%0D%0AThanks!" 
+             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+              + Request New Member Addition
+          </a>
+          <p class="text-xs text-gray-500 mt-1">Click to send a request to the administrator (bryantaryadi25@gmail.com). kalo salah spelling juga boleh request yak maap hehehe</p>
+      </div>
+
+      <p class="text-xs text-gray-500 mt-1">Copyright @2025 | Bryant Aryadi</p>
+      
+  </header>
+
+  <div id="tree-container" class="w-full max-w-6xl shadow-xl rounded-lg border border-gray-200">
+    <svg id="tree"></svg>
+  </div>
+
+  <script>
+    // Set up Tailwind configuration dynamically
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', 'sans-serif'],
+                },
+            }
+        }
+    }
+
+    // Define card dimensions for consistent layout
+    const nodeWidth = 100;
+    const nodeHeight = 30;
+
+    function drawTree(data) {
+        // Dimensions
+        const container = document.getElementById('tree-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        // Select the SVG element and set its dimensions
+        const svg = d3.select("#tree")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Clear existing content
+        svg.selectAll('*').remove();
+
+        // Setup the group element for the tree and apply zoom/pan behavior
+        const g = svg.append("g")
+            .attr("transform", "translate(40,40)"); 
+
+        // Create the zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4]) 
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        // Define the tree layout
+        const treeLayout = d3.tree()
+            // Horizontal tree: [vertical distance (between siblings), horizontal distance (between levels)]
+            .nodeSize([nodeHeight + 20, nodeWidth + 60]); 
+            
+        // 1. Create the hierarchical data structure
+        const root = d3.hierarchy(data);
+
+        // 2. Apply the tree layout to calculate node positions (x, y)
+        treeLayout(root);
+
+        // 3. Draw the links (lines)
+        g.selectAll(".link")
+            .data(root.links()) 
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", d3.linkHorizontal()
+                // Links start/end at the center of the parent/child nodes (0,0 of the group transform)
+                .x(d => d.y) 
+                .y(d => d.x)); 
+
+        // 4. Draw the nodes (rectangles and text)
+        const node = g.selectAll(".node")
+            .data(root.descendants()) 
+            .enter().append("g")
+            .attr("class", d => "node" + (d.depth === 0 ? " node--root" : ""))
+            .attr("transform", d => `translate(${d.y},${d.x})`); 
+
+        // Append the rectangle (the card)
+        node.append("rect")
+            .attr("width", nodeWidth)
+            .attr("height", nodeHeight)
+            // Position the rect so that its center is at the (0,0) point of the group's translation
+            .attr("x", -(nodeWidth / 2))
+            .attr("y", -(nodeHeight / 2)); 
+
+        // Append text labels, centered in the rect
+        node.append("text")
+            .attr("x", 0) // Center horizontally
+            .attr("y", 0) // Center vertically
+            .text(d => d.data.name); 
+
+        // Initial view reset and center the tree on the root node
+        const initialScale = 0.7;
+        svg.call(zoom.transform, d3.zoomIdentity
+            .translate(width / 4, height / 2) 
+            .scale(initialScale)
+        );
+    }
+    
+    // ----------------------------------------------------------------------
+    // Main execution block: Fetch data and draw the tree
+    // ----------------------------------------------------------------------
+    
+    function loadAndDraw() {
+        fetch("famtree.json")
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP status ${res.status}: Failed to load famtree.json.`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                drawTree(data);
+                window.addEventListener('resize', () => drawTree(data));
+            })
+            .catch(error => {
+                console.error("Error loading or processing family tree data:", error);
+                const treeDiv = document.getElementById("tree-container");
+                treeDiv.innerHTML = `<div class="p-8 text-center text-red-600 bg-red-100 rounded-lg">
+                    <p class="font-bold">Error Loading Tree Data</p>
+                    <p class="text-sm">Please ensure <code>famtree.json</code> is in the same folder and you are running a local web server.</p>
+                    <p class="text-xs mt-2 text-red-800">Error: ${error.message}</p>
+                </div>`;
+            });
+    }
+
+    loadAndDraw();
+
+  </script>
+</body>
+</html>
