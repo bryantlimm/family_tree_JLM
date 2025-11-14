@@ -103,7 +103,6 @@
   <!-- Firebase and D3 Logic -->
   <script type="module">
     // --- FIREBASE IMPORTS ---
-    // Note: Added signInWithEmailAndPassword for admin login
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -121,7 +120,7 @@
     const ADMIN_UID = "8rO5MWkS5LM58YVyFbCuHZOhsoJ3"
     const ADMIN_EMAIL = "bryantaryadi25@gmail.com";
     const appId = firebaseConfig.projectId;
-    const initialAuthToken = null; // We are not using Canvas's token now
+    const initialAuthToken = null; 
     
     
     // --- FIREBASE SETUP ---
@@ -137,9 +136,8 @@
     let isAuthReady = false;
     let userId = null;
 
-    // --- AUTHENTICATION FUNCTIONS (UPDATED) ---
+    // --- AUTHENTICATION FUNCTIONS ---
 
-    // Function to handle the actual login process for the admin
     window.adminSignIn = async function() {
         const password = prompt("Enter Admin Password:"); 
         
@@ -147,8 +145,6 @@
 
         try {
             await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
-            // Alert is replaced with an empty message to prevent the iframe issue, 
-            // the onAuthStateChanged listener handles the UI change.
             console.log("Admin signed in successfully!"); 
         } catch (error) {
             console.error("Admin Sign In Error:", error.message);
@@ -234,7 +230,17 @@
             }
         }, (error) => {
             console.error("Firestore Error:", error);
-            // Handle permission denied or other errors
+            const authStatusElement = document.getElementById('authStatus');
+            
+            // NEW: Handle permission denied error
+            if (error.code === 'permission-denied') {
+                console.error("PERMISSION DENIED: The user may not be signed in anonymously, or security rules are too restrictive.");
+                authStatusElement.innerHTML += `<p class="text-xs text-red-500 font-bold mt-1">Error: Data access denied. Friends must ensure their browser is not blocking anonymous sign-in.</p>`;
+                // Fallback to a clear error message in the tree
+                currentTreeData = { name: "Error: Permission Denied" };
+                drawTree(currentTreeData);
+            }
+            // End NEW
         });
         
         // Ensure the drawing function is responsive to window resize
@@ -251,7 +257,7 @@
     // --- DATA HANDLING (WRITE) ---
 
     const initialJsonStructure = {
-      name: "Jia Liok Ngo",
+      name: "Jia Liok Ngo (Ancestor)", // Updated root name to match famtree.json
       children: [
         { name: "johnny", children: [{ name: "Magdalena" }, { name: "Yunita", children: [{ name: "Vince" }, { name: "Gwen" }] }, { name: "Juliana" }] },
         { name: "katerin" },
