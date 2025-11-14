@@ -69,7 +69,7 @@
               Admin: Edit Tree Data
           </button>
 
-          <!-- NEW: Admin Login Button -->
+          <!-- Admin Login Button -->
           <button id="loginButton" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150" onclick="adminSignIn()">
               Admin Login
           </button>
@@ -103,11 +103,12 @@
   <!-- Firebase and D3 Logic -->
   <script type="module">
     // --- FIREBASE IMPORTS ---
+    // Note: Removed signInAnonymously since it is no longer required for read access
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, onSnapshot, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- FIREBASE CONFIGURATION (Verified) ---
+    // --- FIREBASE CONFIGURATION ---
     const firebaseConfig = {
         apiKey: "AIzaSyAPoBkkYoYpHxq5EB36iqSCzSPA6Y4xVDw",
         authDomain: "familytreeapp-70fd0.firebaseapp.com",
@@ -120,8 +121,6 @@
     const ADMIN_UID = "8rO5MWkS5LM58YVyFbCuHZOhsoJ3"
     const ADMIN_EMAIL = "bryantaryadi25@gmail.com";
     const appId = firebaseConfig.projectId;
-    const initialAuthToken = null; 
-    
     
     // --- FIREBASE SETUP ---
     setLogLevel('debug'); 
@@ -133,11 +132,11 @@
     const treeDocRef = doc(db, `artifacts/${appId}/public/data/familyTree/current`);
     
     let currentTreeData = null;
-    let isAuthReady = false;
     let userId = null;
 
-    // --- AUTHENTICATION FUNCTIONS ---
+    // --- AUTHENTICATION FUNCTIONS (Simplified) ---
 
+    // Function to handle the admin login process
     window.adminSignIn = async function() {
         const password = prompt("Enter Admin Password:"); 
         
@@ -148,22 +147,13 @@
             console.log("Admin signed in successfully!"); 
         } catch (error) {
             console.error("Admin Sign In Error:", error.message);
-            // Use a message box or console log instead of alert
+            // This error will be handled by onAuthStateChanged if successful
             console.error("Admin sign-in failed. Check console for details.");
         }
     }
     
-    // Initial anonymous sign-in to satisfy public read rules
-    async function initializeAuth() {
-        try {
-             await signInAnonymously(auth);
-        } catch(e) {
-             console.error("Error signing in anonymously:", e);
-        }
-    }
-
+    // Check for existing signed-in user (only relevant for the Admin)
     onAuthStateChanged(auth, (user) => {
-        isAuthReady = true;
         userId = user ? user.uid : null;
         const authStatusElement = document.getElementById('authStatus');
         const editButton = document.getElementById('editButton');
@@ -178,33 +168,26 @@
             editButton.classList.add('flex');
             loginButton.classList.add('hidden');
         } else {
-            // This covers anonymous users and other authenticated users
-            authStatusElement.innerHTML = `<span class="text-gray-500">View Only Mode (Signed In)</span>`;
+            // Everyone else is a viewer, whether signed in or not.
+            authStatusElement.innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
             editButton.classList.add('hidden');
             editButton.classList.remove('flex');
-            // Only show login button if we are not the admin
-            if (user && user.isAnonymous) {
-                loginButton.classList.remove('hidden');
-            }
+            loginButton.classList.remove('hidden');
         }
-
-        // Only start loading data once authentication is complete
-        loadTreeData();
+        
+        // Data loading is initiated outside of this listener now, as it doesn't need auth.
     });
-
-    initializeAuth();
 
     // --- DATA HANDLING (READ) ---
     function loadTreeData() {
-        if (!isAuthReady) return;
-
         // Listen for real-time changes to the tree document
         onSnapshot(treeDocRef, (docSnap) => {
+            document.getElementById('authStatus').innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
+
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 if (data && data.treeJson) {
                     try {
-                        // Deserialize the JSON string back into an object
                         const treeObject = JSON.parse(data.treeJson);
                         currentTreeData = treeObject;
                         drawTree(currentTreeData);
@@ -213,40 +196,32 @@
                         console.error("Error parsing JSON data from Firestore:", e);
                     }
                 } else {
-                    console.log("Tree document exists but is empty. Please initialize data in the database.");
-                    // Fallback to a single root node if empty
-                    currentTreeData = { name: "Tree Not Initialized" };
+                    currentTreeData = { name: "Tree Document Empty" };
                     drawTree(currentTreeData);
                 }
             } else {
-                // If the document doesn't exist yet, show a placeholder
-                console.log("Tree document not found. Using placeholder data.");
-                currentTreeData = { name: "Jia Liok Ngo (Database Empty)" };
+                currentTreeData = { name: "Jia Liok Ngo (Database Not Initialized)" };
                 drawTree(currentTreeData);
-                // Prompt user to initialize data if they are admin (check again for the latest user state)
-                if (auth.currentUser && auth.currentUser.uid === ADMIN_UID) {
-                    document.getElementById('authStatus').innerHTML += `<p class="text-xs text-orange-500">Click 'Admin: Edit Tree Data' to initialize.</p>`;
-                }
             }
         }, (error) => {
             console.error("Firestore Error:", error);
             const authStatusElement = document.getElementById('authStatus');
             
-            // NEW: Handle permission denied error
+            // This error now ONLY occurs if the security rules are too strict!
             if (error.code === 'permission-denied') {
-                console.error("PERMISSION DENIED: The user may not be signed in anonymously, or security rules are too restrictive.");
-                authStatusElement.innerHTML += `<p class="text-xs text-red-500 font-bold mt-1">Error: Data access denied. Friends must ensure their browser is not blocking anonymous sign-in.</p>`;
-                // Fallback to a clear error message in the tree
+                authStatusElement.innerHTML = `<p class="text-xs text-red-500 font-bold mt-1">Error: Permission Denied. Please ensure the Firestore security rules allow unauthenticated public reads.</p>`;
                 currentTreeData = { name: "Error: Permission Denied" };
                 drawTree(currentTreeData);
             }
-            // End NEW
         });
         
         // Ensure the drawing function is responsive to window resize
-        window.removeEventListener('resize', resizeHandler); // Remove previous listener
+        window.removeEventListener('resize', resizeHandler);
         window.addEventListener('resize', resizeHandler);
     }
+
+    // Start loading data immediately (relying on public read rule)
+    loadTreeData();
 
     function resizeHandler() {
         if (currentTreeData) {
@@ -254,10 +229,9 @@
         }
     }
 
-    // --- DATA HANDLING (WRITE) ---
-
+    // --- DATA HANDLING (WRITE) & D3 LOGIC (Unchanged) ---
     const initialJsonStructure = {
-      name: "Jia Liok Ngo (Ancestor)", // Updated root name to match famtree.json
+      name: "Jia Liok Ngo (Ancestor)", 
       children: [
         { name: "johnny", children: [{ name: "Magdalena" }, { name: "Yunita", children: [{ name: "Vince" }, { name: "Gwen" }] }, { name: "Juliana" }] },
         { name: "katerin" },
@@ -284,17 +258,11 @@
         editError.classList.add('hidden');
 
         try {
-            // 1. Validate JSON
             const updatedData = JSON.parse(jsonEditor.value);
-            
-            // 2. Prepare data for Firestore (must be stringified to store the object hierarchy easily)
             const dataToSave = {
                 treeJson: JSON.stringify(updatedData)
             };
-
-            // 3. Save to Firestore
             await setDoc(treeDocRef, dataToSave, { merge: false });
-            
             console.log("Data successfully saved to Firestore!");
             closeEditModal();
         } catch (e) {
@@ -304,33 +272,25 @@
         }
     }
 
-
-    // --- D3.JS DRAWING LOGIC (Retained) ---
-
     const nodeWidth = 100;
     const nodeHeight = 30;
 
     function drawTree(data) {
-        if (!data || !data.name) return; // Guard against empty data
+        if (!data || !data.name) return; 
 
-        // Dimensions
         const container = document.getElementById('tree-container');
         const width = container.clientWidth;
         const height = container.clientHeight;
 
-        // Select the SVG element and set its dimensions
         const svg = d3.select("#tree")
             .attr("width", width)
             .attr("height", height);
 
-        // Clear existing content
         svg.selectAll('*').remove();
 
-        // Setup the group element for the tree and apply zoom/pan behavior
         const g = svg.append("g")
             .attr("transform", "translate(40,40)"); 
 
-        // Create the zoom behavior
         const zoom = d3.zoom()
             .scaleExtent([0.1, 4]) 
             .on("zoom", (event) => {
@@ -339,17 +299,12 @@
 
         svg.call(zoom);
 
-        // Define the tree layout
         const treeLayout = d3.tree()
             .nodeSize([nodeHeight + 20, nodeWidth + 60]); 
             
-        // 1. Create the hierarchical data structure
         const root = d3.hierarchy(data);
-
-        // 2. Apply the tree layout to calculate node positions (x, y)
         treeLayout(root);
 
-        // 3. Draw the links (lines)
         g.selectAll(".link")
             .data(root.links()) 
             .enter().append("path")
@@ -358,27 +313,23 @@
                 .x(d => d.y) 
                 .y(d => d.x)); 
 
-        // 4. Draw the nodes (rectangles and text)
         const node = g.selectAll(".node")
             .data(root.descendants()) 
             .enter().append("g")
             .attr("class", d => "node" + (d.depth === 0 ? " node--root" : ""))
             .attr("transform", d => `translate(${d.y},${d.x})`); 
 
-        // Append the rectangle (the card)
         node.append("rect")
             .attr("width", nodeWidth)
             .attr("height", nodeHeight)
             .attr("x", -(nodeWidth / 2))
             .attr("y", -(nodeHeight / 2)); 
 
-        // Append text labels, centered in the rect
         node.append("text")
             .attr("x", 0) 
             .attr("y", 0) 
             .text(d => d.data.name); 
 
-        // Initial view reset and center the tree on the root node
         const initialScale = 0.7;
         svg.call(zoom.transform, d3.zoomIdentity
             .translate(width / 4, height / 2) 
