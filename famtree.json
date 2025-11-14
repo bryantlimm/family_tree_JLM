@@ -1,0 +1,98 @@
+{
+  "name": "Jia Liok Ngo",
+  "children": [
+    {
+      "name": "johnny",
+      "children": [
+        { "name": "Magdalena" },
+        {
+          "name": "Yunita",
+          "children": [
+            { "name": "Vince" },
+            { "name": "Gwen" }
+          ]
+        },
+        { "name": "Juliana" }
+      ]
+    },
+    { "name": "katerin" },
+    {
+      "name": "justin",
+      "children": [
+        {
+          "name": "Yan",
+          "children": [
+            { "name": "prina" },
+            { "name": "nerva", "children": [{ "name": "razya" }] },
+            { "name": "wiwin", "children": [{ "name": "lovna" }, { "name": "ale" }] }
+          ]
+        },
+        {
+          "name": "Op",
+          "children": [
+            { "name": "irene", "children": [{ "name": "gemma" }] },
+            { "name": "astrid" }
+          ]
+        },
+        {
+          "name": "Irvan",
+          "children": [
+            { "name": "fanny", "children": [{ "name": "mikha" }] },
+            { "name": "vivian" }
+          ]
+        },
+        { "name": "yanty", "children": [{ "name": "janice" }, { "name": "geo" }] },
+        { "name": "wina", "children": [{ "name": "anet" }, { "name": "serlin" }] },
+        { "name": "irsan" }
+      ]
+    },
+    { "name": "diana" },
+    {
+      "name": "liance",
+      "children": [
+        { "name": "nini", "children": [{ "name": "jason" }, { "name": "janice" }] },
+        { "name": "titi", "children": [{ "name": "justin" }, { "name": "julian" }] },
+        { "name": "tina", "children": [{ "name": "jeremy" }] },
+        { "name": "victor", "children": [{ "name": "monic" }, { "name": "jace" }] }
+      ]
+    },
+    {
+      "name": "tresnawati",
+      "children": [
+        {
+          "name": "vidya",
+          "children": [
+            { "name": "Niko" },
+            { "name": "Andre" },
+            { "name": "Madeline" }
+          ]
+        },
+        { "name": "Viko", "children": [{ "name": "Adeline" }] },
+        {
+          "name": "Theo",
+          "children": [
+            { "name": "Gerald" },
+            { "name": "Kevin" },
+            { "name": "Adelle" }
+          ]
+        },
+        {
+          "name": "Siska",
+          "children": [
+            { "name": "Angel" },
+            { "name": "Nalda" },
+            { "name": "Casia" }
+          ]
+        },
+        {
+          "name": "Keke",
+          "children": [
+            { "name": "Aldrich" },
+            { "name": "Bryant (me)" },
+            { "name": "Christy" }
+          ]
+        }
+      ]
+    }
+  ]
+}

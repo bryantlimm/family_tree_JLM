@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Tree of Jia Liok Ngo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load D3.js v7 library -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    /* Custom styling for the tree container */
+    #tree-container { 
+        width: 100%; 
+        height: 100vh; 
+        background-color: #f7f7f7;
+        border-radius: 0.5rem;
+        overflow: hidden; /* Prevent scrollbars on the container */
+    }
+    
+    /* Style for the links (lines between nodes) */
+    .link {
+      fill: none;
+      stroke: #9d9d9d;
+      stroke-width: 1.5px;
+    }
+
+    /* Style for the nodes (circles) */
+    .node circle {
+      fill: #fff;
+      stroke: #3182CE;
+      stroke-width: 3px;
+      cursor: pointer;
+    }
+    
+    /* Style for the text labels */
+    .node text {
+      font-size: 10px;
+      fill: #333;
+      pointer-events: none; /* Make text not interfere with node clicking */
+    }
+
+    /* Style for the root node to make it stand out */
+    .node--root circle {
+      fill: #3182CE;
+      stroke: #2C5282;
+    }
+    .node--root text {
+      fill: rgb(17, 17, 17);
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 flex flex-col items-center p-4 min-h-screen font-sans">
+
+    <header class="mb-6 text-center">
+      <h1 class="text-3xl font-bold text-indigo-700">The Family Tree of Jia Liok Ngo</h1>
+      <!-- <p class="text-gray-600 mt-1">Interactive visualization powered by D3.js. Use mouse wheel/trackpad to zoom and drag to pan!</p> -->
+    </header>
+
+  <div id="tree-container" class="w-full max-w-6xl shadow-xl rounded-lg border border-gray-200">
+    <svg id="tree"></svg>
+  </div>
+
+  <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', 'sans-serif'],
+                },
+            }
+        }
+    }
+
+    function drawTree(data) {
+        // Dimensions
+        const container = document.getElementById('tree-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        // Select the SVG element and set its dimensions
+        const svg = d3.select("#tree")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Clear existing content
+        svg.selectAll('*').remove();
+
+        // Setup the group element for the tree and apply zoom/pan behavior
+        // We initialize the group that will be transformed by zooming/panning
+        const g = svg.append("g")
+            .attr("transform", "translate(40,40)"); 
+
+        // Create the zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4]) 
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        // Define the tree layout
+        const treeLayout = d3.tree()
+            // Set size dynamically, giving horizontal room for labels
+            .size([height - 80, width - 150]); 
+
+        // 1. Create the hierarchical data structure (d3.hierarchy expects the root node)
+        const root = d3.hierarchy(data);
+
+        // 2. Apply the tree layout to calculate node positions (x, y)
+        treeLayout(root);
+
+        // 3. Draw the links (lines)
+        g.selectAll(".link")
+            .data(root.links()) // D3 method to extract links from the tree
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", d3.linkHorizontal()
+                .x(d => d.y) // Horizontal layout uses y for X-coordinate
+                .y(d => d.x)); // and x for Y-coordinate
+
+        // 4. Draw the nodes (circles and text)
+        const node = g.selectAll(".node")
+            .data(root.descendants()) // D3 method to get all nodes
+            .enter().append("g")
+            .attr("class", d => "node" + (d.depth === 0 ? " node--root" : ""))
+            .attr("transform", d => `translate(${d.y},${d.x})`); // Position the group
+
+        // Append circles for the nodes
+        node.append("circle")
+            .attr("r", 4.5); // Radius of the circle
+
+        // Append text labels for the nodes
+        node.append("text")
+            .attr("dy", 3) // Vertical offset
+            .attr("x", d => d.children ? -8 : 8) // Horizontal offset (left for parents, right for leaves)
+            .attr("text-anchor", d => d.children ? "end" : "start") // Alignment
+            .text(d => d.data.name); // Use the 'name' from the JSON data
+
+        // Initial view reset and center the tree on the root node
+        const initialScale = 0.6;
+        svg.call(zoom.transform, d3.zoomIdentity
+            .translate(width / 4, height / 2)
+            .scale(initialScale)
+        );
+    }
+    
+    // ----------------------------------------------------------------------
+    // Main execution block: Fetch data and draw the tree
+    // ----------------------------------------------------------------------
+    
+    function loadAndDraw() {
+        // Fetch the JSON data from the separate file
+        fetch("famtree.json")
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP status ${res.status}: Failed to load famtree.json. Ensure it is in the same folder and you are running a web server (e.g., python3 -m http.server).`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                drawTree(data);
+                // Attach resize listener only after successful load
+                window.addEventListener('resize', () => drawTree(data));
+            })
+            .catch(error => {
+                console.error("Error loading or processing family tree data:", error);
+                // Display user-friendly error
+                const treeDiv = document.getElementById("tree-container");
+                treeDiv.innerHTML = `<div class="p-8 text-center text-red-600 bg-red-100 rounded-lg">
+                    <p class="font-bold">Error Loading Tree Data</p>
+                    <p class="text-sm">The application could not find or load <code>famtree.json</code>.</p>
+                    <p class="text-xs mt-2">To fix this, please ensure both <code>index.html</code> and <code>famtree.json</code> are in the same folder and you are running a local web server (like <code>python3 -m http.server</code>) to view the file.</p>
+                    <p class="text-xs mt-2 text-red-800">Error: ${error.message}</p>
+                </div>`;
+            });
+    }
+
+    // Run the loading function when the page is ready
+    loadAndDraw();
+
+  </script>
+</body>
+</html>
