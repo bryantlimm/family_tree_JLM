@@ -1,11 +1,10 @@
-this one is not connected to firebase
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Family Tree of Jia Liok Ngo</title>
-  <!-- Load Tailwind CSS for modern styling -->
+  <title>Family Tree Editor (Firebase & D3.js)</title>
+  <!-- Load Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Load D3.js v7 library -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -19,84 +18,271 @@ this one is not connected to firebase
         overflow: hidden; 
     }
     
-    /* Style for the links (lines between nodes) */
+    /* D3 Styles */
     .link {
       fill: none;
       stroke: #9d9d9d;
       stroke-width: 1.5px;
     }
-
-    /* Style for the nodes (rectangles/cards) */
     .node rect {
       fill: #fff;
       stroke: #3182CE;
       stroke-width: 2px;
       cursor: pointer;
-      rx: 6; /* Rounded corners */
-      ry: 6;
+      rx: 6; ry: 6;
     }
-    
-    /* Style for the text labels */
     .node text {
-      font-size: 11px;
-      font-weight: 500;
-      fill: #333;
-      pointer-events: none; 
-      text-anchor: middle; /* Center the text horizontally */
-      dominant-baseline: middle; /* Center the text vertically */
+      font-size: 11px; font-weight: 500; fill: #333; pointer-events: none; 
+      text-anchor: middle; dominant-baseline: middle; 
     }
+    .node--root rect { fill: #3182CE; stroke: #2C5282; }
+    .node--root text { fill: white; font-weight: bold; }
 
-    /* Style for the root node to make it stand out */
-    .node--root rect {
-      fill: #3182CE;
-      stroke: #2C5282;
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center;
+      z-index: 1000;
     }
-    .node--root text {
-      fill: white;
-      font-weight: bold;
+    .modal-content {
+      background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     }
   </style>
 </head>
 
 <body class="bg-gray-100 flex flex-col items-center p-4 min-h-screen font-sans">
   
-  <header class="mb-6 text-center">
+  <header class="mb-6 text-center w-full max-w-6xl">
       <h1 class="text-3xl font-bold text-indigo-700">The Family Tree of Jia Liok Ngo</h1>
       
-      <!-- NEW FEATURE: Request Button -->
-      <div class="mt-4">
+      <div id="controls" class="mt-4 flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4">
+          
+          <!-- Public Request Button (Always Visible) -->
           <a href="mailto:bryantaryadi25@gmail.com?subject=New%20Family%20Member%20Addition%20Request%20(Jia%20Liok%20Ngo%20Tree)&body=Hello%20Bryant%2C%0D%0A%0D%0AI%20would%20like%20to%20request%20the%20addition%20of%20a%20new%20family%20member%20to%20the%20tree.%0D%0A%0D%0A---%20Required%20Details%20---%0D%0A-Name%20of%20New%20Member%3A%0D%0A-Parent's%20Name%20(Existing%20on%20Tree)%3A%0D%0A-Relationship%20(e.g.%2C%20Child%2C%20Spouse)%3A%0D%0A---%20%0D%0A%0D%0AThanks!" 
-             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+             class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition duration-150">
               + Request New Member Addition
           </a>
-          <p class="text-xs text-gray-500 mt-1">Click to send a request to the administrator (bryantaryadi25@gmail.com). kalo salah spelling juga boleh request yak maap hehehe</p>
+          
+          <!-- Admin Edit Button (Hidden by default, shown after admin sign-in) -->
+          <button id="editButton" class="hidden items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition duration-150" onclick="openEditModal()">
+              Admin: Edit Tree Data
+          </button>
+          
+          <div id="authStatus" class="text-sm text-gray-500">Initializing...</div>
       </div>
-
-      <p class="text-xs text-gray-500 mt-1">Copyright @2025 | Bryant Aryadi</p>
-      
   </header>
 
   <div id="tree-container" class="w-full max-w-6xl shadow-xl rounded-lg border border-gray-200">
     <svg id="tree"></svg>
   </div>
 
-  <script>
-    // Set up Tailwind configuration dynamically
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: {
-                    sans: ['Inter', 'sans-serif'],
-                },
+  <!-- Modal for Data Editing -->
+  <div id="editModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h2 class="text-xl font-bold mb-4 text-indigo-700">Edit Family Tree JSON</h2>
+      <p class="text-sm text-red-600 mb-4">CAUTION: This directly edits the live database. Ensure the JSON structure remains correct!</p>
+      
+      <textarea id="jsonEditor" rows="15" class="w-full p-3 border border-gray-300 rounded-md font-mono text-xs"></textarea>
+
+      <div id="editError" class="text-red-500 text-sm mt-2 hidden"></div>
+
+      <div class="flex justify-end space-x-3 mt-4">
+        <button onclick="closeEditModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+        <button onclick="saveData()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Firebase and D3 Logic -->
+  <script type="module">
+    // --- FIREBASE IMPORTS ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, setDoc, getDoc, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Global Firebase variables provided by the environment
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    
+    // --- FIREBASE SETUP ---
+    setLogLevel('debug'); // Enable logs for easier debugging
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Document reference (We will store the entire tree structure in one document)
+    // Path: /artifacts/{appId}/public/data/familyTree/current
+    const treeDocRef = doc(db, `artifacts/${appId}/public/data/familyTree/current`);
+    
+    let currentTreeData = null;
+    let isAuthReady = false;
+    let userId = null;
+
+
+    // --- AUTHENTICATION & INITIALIZATION ---
+
+    async function initializeAuth() {
+        if (initialAuthToken) {
+            try {
+                await signInWithCustomToken(auth, initialAuthToken);
+            } catch (error) {
+                console.error("Error signing in with custom token:", error);
+                // If custom token fails, fall back to anonymous sign-in
+                try {
+                     await signInAnonymously(auth);
+                } catch(e) {
+                     console.error("Error signing in anonymously:", e);
+                }
             }
+        } else {
+             // If token is missing, sign in anonymously
+             try {
+                 await signInAnonymously(auth);
+             } catch(e) {
+                 console.error("Error signing in anonymously:", e);
+             }
         }
     }
 
-    // Define card dimensions for consistent layout
+    onAuthStateChanged(auth, (user) => {
+        isAuthReady = true;
+        userId = user ? user.uid : null;
+        const authStatusElement = document.getElementById('authStatus');
+
+        if (user) {
+            authStatusElement.innerHTML = `<span class="text-green-600">Admin Mode (User: ${userId.substring(0, 6)}...)</span>`;
+            document.getElementById('editButton').classList.remove('hidden');
+            document.getElementById('editButton').classList.add('flex');
+        } else {
+            authStatusElement.innerHTML = `<span class="text-gray-500">View Only Mode</span>`;
+            document.getElementById('editButton').classList.add('hidden');
+            document.getElementById('editButton').classList.remove('flex');
+        }
+
+        // Only start loading data once authentication is complete
+        loadTreeData();
+    });
+
+    initializeAuth();
+
+    // --- DATA HANDLING (READ) ---
+    function loadTreeData() {
+        if (!isAuthReady) return;
+
+        // Listen for real-time changes to the tree document
+        onSnapshot(treeDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data && data.treeJson) {
+                    try {
+                        // Deserialize the JSON string back into an object
+                        const treeObject = JSON.parse(data.treeJson);
+                        currentTreeData = treeObject;
+                        drawTree(currentTreeData);
+                        console.log("Tree data loaded from Firestore.");
+                    } catch (e) {
+                        console.error("Error parsing JSON data from Firestore:", e);
+                    }
+                } else {
+                    console.log("Tree document exists but is empty. Please initialize data in the database.");
+                    // Fallback to a single root node if empty
+                    currentTreeData = { name: "Tree Not Initialized" };
+                    drawTree(currentTreeData);
+                }
+            } else {
+                // If the document doesn't exist yet, show a placeholder
+                console.log("Tree document not found. Using placeholder data.");
+                currentTreeData = { name: "Jia Liok Ngo (Database Empty)" };
+                drawTree(currentTreeData);
+                // Prompt user to initialize data if they are admin
+                if (userId) {
+                    document.getElementById('authStatus').innerHTML += `<p class="text-xs text-orange-500">Click 'Admin: Edit Tree Data' to initialize.</p>`;
+                }
+            }
+        }, (error) => {
+            console.error("Firestore Error:", error);
+            // Handle permission denied or other errors
+        });
+        
+        // Ensure the drawing function is responsive to window resize
+        window.removeEventListener('resize', resizeHandler); // Remove previous listener
+        window.addEventListener('resize', resizeHandler);
+    }
+
+    function resizeHandler() {
+        if (currentTreeData) {
+            drawTree(currentTreeData);
+        }
+    }
+
+    // --- DATA HANDLING (WRITE) ---
+
+    // IMPORTANT: This is the structure you need to create in Firestore initially:
+    // Collection: artifacts/{appId}/public/data/familyTree
+    // Document: current
+    // Field: treeJson (Type: String)
+    // Value: The JSON string of your tree data (see example below)
+
+    const initialJsonStructure = {
+      name: "Jia Liok Ngo",
+      children: [
+        { name: "johnny", children: [{ name: "Magdalena" }, { name: "Yunita", children: [{ name: "Vince" }, { name: "Gwen" }] }, { name: "Juliana" }] },
+        { name: "katerin" },
+        { name: "justin", children: [{ name: "Yan", children: [{ name: "prina" }, { name: "nerva", children: [{ name: "razya" }] }, { name: "wiwin", children: [{ name: "lovna" }, { name: "ale" }] }] }, { name: "Op", children: [{ name: "irene", children: [{ name: "gemma" }] }, { name: "astrid" }] }, { name: "Irvan", children: [{ name: "fanny", children: [{ name: "mikha" }] }, { name: "vivian" }] }, { name: "yanty", children: [{ name: "janice" }, { name: "geo" }] }, { name: "wina", children: [{ name: "anet" }, { name: "serlin" }] }, { name: "irsan" }] },
+        { name: "diana" },
+        { name: "liance", children: [{ name: "nini", children: [{ name: "jason" }, { name: "janice" }] }, { name: "titi", children: [{ name: "justin" }, { name: "julian" }] }, { name: "tina", children: [{ name: "jeremy" }] }, { name: "victor", children: [{ name: "monic" }, { name: "jace" }] }] },
+        { name: "tresnawati", children: [{ name: "vidya", children: [{ name: "Niko" }, { name: "Andre" }, { name: "Madeline" }] }, { name: "Viko", children: [{ name: "Adeline" }] }, { name: "Theo", children: [{ name: "Gerald" }, { name: "Kevin" }, { name: "Adelle" }] }, { name: "Siska", children: [{ name: "Angel" }, { name: "Nalda" }, { name: "Casia" }] }, { name: "Keke", children: [{ name: "Aldrich" }, { name: "Bryant (that’s me)" }, { name: "Christy" }] }] }
+      ]
+    };
+    
+    function openEditModal() {
+        document.getElementById('editError').classList.add('hidden');
+        document.getElementById('jsonEditor').value = JSON.stringify(currentTreeData || initialJsonStructure, null, 2);
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+    }
+
+    async function saveData() {
+        const jsonEditor = document.getElementById('jsonEditor');
+        const editError = document.getElementById('editError');
+        editError.classList.add('hidden');
+
+        try {
+            // 1. Validate JSON
+            const updatedData = JSON.parse(jsonEditor.value);
+            
+            // 2. Prepare data for Firestore (must be stringified to store the object hierarchy easily)
+            const dataToSave = {
+                treeJson: JSON.stringify(updatedData)
+            };
+
+            // 3. Save to Firestore
+            await setDoc(treeDocRef, dataToSave, { merge: false });
+            
+            console.log("Data successfully saved to Firestore!");
+            closeEditModal();
+        } catch (e) {
+            editError.textContent = "Error saving data: Invalid JSON format or database error.";
+            editError.classList.remove('hidden');
+            console.error("Save Error:", e);
+        }
+    }
+
+
+    // --- D3.JS DRAWING LOGIC (Retained) ---
+
     const nodeWidth = 100;
     const nodeHeight = 30;
 
     function drawTree(data) {
+        if (!data || !data.name) return; // Guard against empty data
+
         // Dimensions
         const container = document.getElementById('tree-container');
         const width = container.clientWidth;
@@ -125,7 +311,6 @@ this one is not connected to firebase
 
         // Define the tree layout
         const treeLayout = d3.tree()
-            // Horizontal tree: [vertical distance (between siblings), horizontal distance (between levels)]
             .nodeSize([nodeHeight + 20, nodeWidth + 60]); 
             
         // 1. Create the hierarchical data structure
@@ -140,7 +325,6 @@ this one is not connected to firebase
             .enter().append("path")
             .attr("class", "link")
             .attr("d", d3.linkHorizontal()
-                // Links start/end at the center of the parent/child nodes (0,0 of the group transform)
                 .x(d => d.y) 
                 .y(d => d.x)); 
 
@@ -155,14 +339,13 @@ this one is not connected to firebase
         node.append("rect")
             .attr("width", nodeWidth)
             .attr("height", nodeHeight)
-            // Position the rect so that its center is at the (0,0) point of the group's translation
             .attr("x", -(nodeWidth / 2))
             .attr("y", -(nodeHeight / 2)); 
 
         // Append text labels, centered in the rect
         node.append("text")
-            .attr("x", 0) // Center horizontally
-            .attr("y", 0) // Center vertically
+            .attr("x", 0) 
+            .attr("y", 0) 
             .text(d => d.data.name); 
 
         // Initial view reset and center the tree on the root node
@@ -172,36 +355,8 @@ this one is not connected to firebase
             .scale(initialScale)
         );
     }
-    
-    // ----------------------------------------------------------------------
-    // Main execution block: Fetch data and draw the tree
-    // ----------------------------------------------------------------------
-    
-    function loadAndDraw() {
-        fetch("famtree.json")
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error(`HTTP status ${res.status}: Failed to load famtree.json.`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                drawTree(data);
-                window.addEventListener('resize', () => drawTree(data));
-            })
-            .catch(error => {
-                console.error("Error loading or processing family tree data:", error);
-                const treeDiv = document.getElementById("tree-container");
-                treeDiv.innerHTML = `<div class="p-8 text-center text-red-600 bg-red-100 rounded-lg">
-                    <p class="font-bold">Error Loading Tree Data</p>
-                    <p class="text-sm">Please ensure <code>famtree.json</code> is in the same folder and you are running a local web server.</p>
-                    <p class="text-xs mt-2 text-red-800">Error: ${error.message}</p>
-                </div>`;
-            });
-    }
-
-    loadAndDraw();
-
   </script>
 </body>
 </html>
+
+this one is not connected to firebase
