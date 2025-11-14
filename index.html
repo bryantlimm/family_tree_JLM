@@ -271,12 +271,16 @@
     // Global function to toggle the layout direction
     window.toggleLayout = function() {
         isVerticalLayout = !isVerticalLayout;
-        const button = document.getElementById('layout-toggle-button');
+        const icon = document.getElementById('layout-icon');
         
         if (isVerticalLayout) {
-            button.textContent = 'Switch to Horizontal Layout';
+            // Tree is NOW Vertical. Button should show the icon for the next state: Horizontal.
+            icon.src = 'horizontal.png';
+            icon.alt = 'Horizontal Layout Icon';
         } else {
-            button.textContent = 'Switch to Vertical Layout';
+            // Tree is NOW Horizontal. Button should show the icon for the next state: Vertical.
+            icon.src = 'vertical.png';
+            icon.alt = 'Vertical Layout Icon';
         }
         
         // Redraw the tree with the new layout setting
@@ -1005,9 +1009,10 @@
 
   <div id="layout-controls" class="fixed bottom-4 right-4 z-50">
       <button id="layout-toggle-button" 
-              class="px-4 py-2 text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition duration-150 shadow-lg" 
-              onclick="toggleLayout()">
-          Switch to Vertical Layout
+              class="p-3 font-medium rounded-full text-white bg-purple-600 hover:bg-purple-700 transition duration-150 shadow-lg flex items-center justify-center w-12 h-12" 
+              onclick="toggleLayout()"
+              title="Switch Layout">
+          <img id="layout-icon" src="vertical.png" alt="Vertical Layout Icon" class="w-6 h-6">
       </button>
   </div>
 </body>
