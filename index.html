@@ -162,16 +162,25 @@
 
       <div class="space-y-4">
         
-        <!-- 1. Edit Name Section -->
         <div>
-          <label for="newName" class="block text-sm font-medium text-gray-700">Change Name</label>
-          <input type="text" id="newName" placeholder="New Name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
-          <button onclick="handleNodeAction('rename')" class="mt-2 w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">Rename Member</button>
+          <label for="newName" class="block text-sm font-medium text-gray-700">Name</label>
+          <input type="text" id="newName" placeholder="Name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
         </div>
+
+        <div>
+          <label for="newSpouse" class="block text-sm font-medium text-gray-700">Spouse Name</label>
+          <input type="text" id="newSpouse" placeholder="Spouse Name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+        </div>
+        
+        <div>
+          <label for="newDob" class="block text-sm font-medium text-gray-700">Date of Birth (e.g., YYYY-MM-DD)</label>
+          <input type="text" id="newDob" placeholder="Date of Birth" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+        </div>
+        
+        <button onclick="handleNodeAction('updateDetails')" class="mt-2 w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition">Save Name/Details</button>
         
         <hr class="border-gray-200">
 
-        <!-- 2. Add Child Section -->
         <div>
           <label for="childName" class="block text-sm font-medium text-gray-700">Add New Child</label>
           <input type="text" id="childName" placeholder="New Child's Name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
@@ -180,7 +189,6 @@
 
         <hr class="border-gray-200">
 
-        <!-- 3. Delete Section -->
         <div id="deleteSection">
           <p class="text-red-500 text-sm font-semibold mb-2">Danger Zone: Remove Member</p>
           <button onclick="handleNodeAction('delete')" class="w-full px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition">Delete Member (and all descendants)</button>
@@ -197,6 +205,26 @@
     </div>
   </div>
 
+  <div id="infoModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h2 class="text-xl font-bold mb-4 text-blue-700">Member Details: <span id="infoMemberName" class="font-extrabold"></span></h2>
+      
+      <div class="space-y-3">
+        <p class="text-gray-700">
+          <span class="font-semibold">Spouse:</span> 
+          <span id="infoSpouseName" class="text-gray-900">N/A</span>
+        </p>
+        <p class="text-gray-700">
+          <span class="font-semibold">Date of Birth:</span> 
+          <span id="infoDOB" class="text-gray-900">N/A</span>
+        </p>
+      </div>
+
+      <div class="flex justify-end mt-6">
+        <button onclick="closeInfoModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Firebase and D3 Logic -->
   <script type="module">
@@ -278,12 +306,31 @@
     // Global variable to store the path of the node currently being edited
     let activeNodePath = [];
 
+    // --- NEW INFO MODAL HANDLERS (PUBLIC) ---
+    window.openInfoModal = function(d) {
+        const data = d.data;
+        
+        document.getElementById('infoMemberName').textContent = data.name || 'N/A';
+        document.getElementById('infoSpouseName').textContent = data.spouse && data.spouse.trim() ? data.spouse : 'N/A';
+        document.getElementById('infoDOB').textContent = data.dob && data.dob.trim() ? data.dob : 'N/A';
+
+        document.getElementById('infoModal').classList.remove('hidden');
+    }
+
+    window.closeInfoModal = function() {
+        document.getElementById('infoModal').classList.add('hidden');
+    }
+
     window.openNodeEditModal = function(d) {
         activeNodePath = getPath(d);
         const memberName = d.data.name;
         
         document.getElementById('currentMemberName').textContent = memberName;
-        document.getElementById('newName').value = memberName;
+        // Populate ALL editable fields
+        document.getElementById('newName').value = d.data.name;
+        document.getElementById('newSpouse').value = d.data.spouse || ''; // Populate new field
+        document.getElementById('newDob').value = d.data.dob || '';       // Populate new field
+        
         document.getElementById('childName').value = '';
         document.getElementById('nodeEditError').classList.add('hidden');
         document.getElementById('nodeEditSuccess').classList.add('hidden');
@@ -320,22 +367,30 @@
         }
         
         let shouldSave = false;
+        let successMessage = "";
 
         switch (action) {
-            case 'rename':
+            case 'updateDetails': // <-- NEW ACTION CASE
                 const newName = document.getElementById('newName').value.trim();
+                const newSpouse = document.getElementById('newSpouse').value.trim();
+                const newDob = document.getElementById('newDob').value.trim();
+                
                 if (!newName) {
                     errorElement.textContent = "Name cannot be empty.";
                     errorElement.classList.remove('hidden');
                     return;
                 }
+                
+                // Update the node properties
                 targetNode.name = newName;
+                targetNode.spouse = newSpouse;
+                targetNode.dob = newDob;
+                
                 shouldSave = true;
-                successElement.textContent = "Member successfully renamed to " + newName + "!";
+                successMessage = "Member details successfully updated!";
                 // Update the path reference to the new name for future actions
                 activeNodePath[activeNodePath.length - 1] = newName; 
                 document.getElementById('currentMemberName').textContent = newName;
-                document.getElementById('newName').value = newName;
                 break;
 
             case 'addChild':
@@ -348,9 +403,10 @@
                 if (!targetNode.children) {
                     targetNode.children = [];
                 }
-                targetNode.children.push({ name: childName });
+                // When adding a new child, initialize spouse/dob fields
+                targetNode.children.push({ name: childName, spouse: "", dob: "" }); 
                 shouldSave = true;
-                successElement.textContent = childName + " successfully added as a child!";
+                successMessage = childName + " successfully added as a child!";
                 document.getElementById('childName').value = '';
                 break;
                 
@@ -370,7 +426,7 @@
                 }
                 
                 shouldSave = true;
-                successElement.textContent = targetNode.name + " and their descendants have been removed.";
+                successMessage = targetNode.name + " and their descendants have been removed.";
                 break;
         }
 
@@ -385,12 +441,13 @@
                 errorElement.textContent = "Error saving data to database.";
                 errorElement.classList.remove('hidden');
                 console.error("Save Error:", e);
+                return; // Stop here if save failed
             }
         }
 
+        successElement.textContent = successMessage;
         successElement.classList.remove('hidden');
     }
-
 
     // --- AUTH & LOGIN FUNCTIONS ---
 
@@ -601,13 +658,156 @@
     // --- D3 LOGIC ---
     const initialJsonStructure = {
       name: "Jia Liok Ngo (Ancestor)", 
+      spouse: "",
+      dob: "",
       children: [
-        { name: "Johnny", children: [{ name: "Magdalena" }, { name: "Yunita Omega", children: [{ name: "Vince" }, { name: "Gwen" }] }, { name: "Juliana" }] },
-        { name: "Katerin" },
-        { name: "Justin Samuel", children: [{ name: "Yan" }, { name: "Op" }, { name: "Irvan" }, { name: "Yanty" }, { name: "Wina" }, { name: "Irsan" }] },
-        { name: "Diana", children: [{ name: "Alex" }] },
-        { name: "Liance", children: [{ name: "Nini", children: [{ name: "Jason" }, { name: "Janice" }] }, { name: "Titi", children: [{ name: "Justin" }, { name: "Julian" }] }, { name: "Tina", children: [{ name: "Jeremy" }] }, { name: "Victor Thomas", children: [{ name: "Monic" }, { name: "Jace" }] }] },
-        { name: "Tresnawati", children: [{ name: "Vidya", children: [{ name: "Niko" }, { name: "Andre" }, { name: "Madeline" }] }, { name: "Viko" }, { name: "Theo", children: [{ name: "Gerald" }, { name: "Kevin" }, { name: "Adelle" }] }, { name: "Siska" }, { name: "Keke Maria", children: [{ name: "Aldrich" }, { name: "Bryant (that’s me)" }, { name: "Christy Omega Aryadi" }] }] }
+        { 
+            name: "Johnny", 
+            spouse: "",
+            dob: "",
+            children: [
+                { 
+                    name: "Magdalena",
+                    spouse: "",
+                    dob: "", 
+                }, { 
+                    name: "Yunita Omega", 
+                    spouse: "",
+                    dob: "",
+                    children: [
+                        { 
+                            name: "Vince",
+                            spouse: "",
+                            dob: "",
+                        }, { 
+                            name: "Gwen",
+                            spouse: "",
+                            dob: "", 
+                        }
+                    ] }, 
+                { 
+                    name: "Juliana",
+                    spouse: "",
+                    dob: "", 
+                }
+            ] 
+        },
+        { 
+            name: "Katerin",
+            spouse: "",
+            dob: ""
+        },
+        { 
+            name: "Justin Samuel",
+            spouse: "",
+            dob: "", 
+            children: [
+                { name: "Yan", spouse: "", dob: "" }, 
+                { name: "Op", spouse: "", dob: "" }, 
+                { name: "Irvan", spouse: "", dob: "" }, 
+                { name: "Yanty", spouse: "", dob: "" }, 
+                { name: "Wina", spouse: "", dob: "" }, 
+                { name: "Irsan", spouse: "", dob: "" }
+            ] 
+        },
+        { name: "Diana", spouse: "", dob: "", children: [{ name: "Alex", spouse: "", dob: "" }] },
+        { 
+            name: "Liance", 
+            spouse: "", 
+            dob: "", 
+            children: [
+                { 
+                    name: "Nini", spouse: "", dob: "", 
+                    children: [
+                        { name: "Jason", spouse: "", dob: "" }, 
+                        { name: "Janice", spouse: "", dob: "" }
+                    ] 
+                }, 
+                { 
+                    name: "Titi", 
+                    spouse: "", 
+                    dob: "", 
+                    children: [
+                        { name: "Justin", spouse: "", dob: "" }, 
+                        { name: "Julian", spouse: "", dob: "" }
+                    ] 
+                }, 
+                { 
+                    name: "Tina", 
+                    spouse: "", 
+                    dob: "", 
+                    children: [
+                        { name: "Jeremy", spouse: "", dob: "" }
+                    ] 
+                }, 
+                { 
+                    name: "Victor Thomas", 
+                    spouse: "", 
+                    dob: "", 
+                    children: [
+                        { name: "Monic", spouse: "", dob: "" }, 
+                        { name: "Jace", spouse: "", dob: "" }
+                    ] 
+                }
+            ] 
+        },
+        { 
+            name: "Tresnawati", 
+            spouse: "", 
+            dob: "", 
+            children: [
+                { 
+                    name: "Vidya", 
+                    spouse: "", 
+                    dob: "", 
+                    children: [
+                        { name: "Niko", spouse: "", dob: "" }, 
+                        { name: "Andre", spouse: "", dob: "" }, 
+                        { name: "Madeline", spouse: "", dob: "" }
+                    ] 
+                }, 
+                { 
+                    name: "Viko" , 
+                    spouse: "", 
+                    dob: "",
+                    children: [{name: "Adeline Ecklesia Lesmana", spouse: "", dob: ""}]
+                }, 
+                { 
+                    name: "Theo", 
+                    spouse: "", 
+                    dob: "", 
+                    children: [
+                        { name: "Gerald", spouse: "", dob: "" }, 
+                        { name: "Kevin", spouse: "", dob: "" }, 
+                        { name: "Adelle", spouse: "", dob: "" }
+                    ] 
+                }, 
+                { 
+                    name: "Maria Fransiska", spouse: "", dob: "",
+                    children: [
+                        {
+                            name: "Angel", spouse: "", dob: ""
+                        },
+                        {
+                            name: "Nalda", spouse: "", dob: ""
+                        },
+                        {
+                            name: "Casia", spouse: "", dob: ""
+                        },
+                    ] 
+                }, 
+                { 
+                    name: "Bernike Chaifri", 
+                    spouse: "", 
+                    dob: "", 
+                    children: [
+                        { name: "Aldrich", spouse: "", dob: "" }, 
+                        { name: "Bryant Aryadi", spouse: "", dob: "" }, 
+                        { name: "Christy Omega Aryadi" }
+                    ] 
+                }
+            ] 
+        }
       ]
     };
 
@@ -714,10 +914,18 @@
             .attr("y", d => -(d.nodeDimensions.height / 2));
 
         // Attach click handler ONLY if in Admin Mode
+        // Attach click handler based on the user mode
         if (isAdminMode) {
+            // Admin mode: opens the editor modal
             node.on('click', (event, d) => {
                 event.stopPropagation(); 
                 openNodeEditModal(d);
+            });
+        } else {
+            // Public mode: opens the read-only info modal
+            node.on('click', (event, d) => {
+                event.stopPropagation(); 
+                openInfoModal(d);
             });
         }
 
